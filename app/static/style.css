@@ -1,0 +1,69 @@
+    body {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        font-family: Arial, sans-serif;
+    }
+
+    svg {
+        border: 1px solid #ccc;
+        background-color: #f9f9f9;
+    }
+
+    circle.grid-node {
+        cursor: pointer;
+        fill: transparent;
+        stroke: #888;
+    }
+
+    circle.selected {
+        fill: red;
+    }
+
+    #controls {
+        width: 250px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        background: #f4f4f4;
+        border-radius: 5px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        height: fit-content;
+    }
+
+    #controls h2 {
+        margin-top: 0;
+    }
+
+    label {
+        user-select: none;
+        cursor: pointer;
+    }
+
+    button {
+        padding: 8px;
+        cursor: pointer;
+        border: 1px solid #888;
+        border-radius: 4px;
+        background: white;
+    }
+
+    button:hover {
+        background: #ddd;
+    }
+
+    svg {
+        border: 1px solid #ccc;
+        background-color: #f9f9f9;
+    }
+
+    circle.grid-node {
+        cursor: pointer;
+        fill: transparent;
+        stroke: #888;
+    }
+
+    circle.selected {
+        fill: red;
+    }
