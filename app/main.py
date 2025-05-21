@@ -90,7 +90,7 @@ async def add_string_by_nodes(request: Request):
 async def add_block_on_plane(request: Request):
     global k
     data = await request.json()
-    print(data)
+    
     x1, y1, h, w = map(int, (data["x"], data["y"], data["height"], data["width"]))
     h = h * d
     w = w * d
@@ -120,8 +120,11 @@ async def add_block_on_plane(request: Request):
                 "id2": k,
             }
         )
-
-    block_svg = f'<rect x="{x1}" y="{y1 - h}" width="{w}" height="{h}" fill="green" fill-opacity="0.4" stroke="black"  transform="rotate({angle_deg}, {x1}, {y1})" />'
+    a = math.radians(angle_deg)
+    new_x = x1 - h * math.sin(a) #+ h * math.sin(a)
+    new_y = y1 - h * math.cos(a) #- w * math.sin(a) 
+    
+    block_svg = f'<rect x="{new_x}" y="{new_y}" width="{w}" height="{h}" fill="green" fill-opacity="0.4" stroke="black"  transform="rotate({-angle_deg}, {new_x}, {new_y})" />'
     scene.append(block_svg)
     objects.append(
         {
