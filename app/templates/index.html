@@ -230,6 +230,15 @@
             });
         });
 
+        // ctrl+z
+        document.addEventListener('keydown', function (event) {
+            console.log(1)
+            if (event.ctrlKey && event.code == 'KeyZ') {
+                event.preventDefault();
+                console.log(2)
+                fetch('/undo', { method: 'POST' }).then(() => location.reload());
+            }
+        });
         // Кнопка очистить рисунок
         document.getElementById('clear-btn').addEventListener('click', () => {
             fetch('/clear', { method: 'POST' }).then(response => {
