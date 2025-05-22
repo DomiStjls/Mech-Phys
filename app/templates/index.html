@@ -154,36 +154,6 @@
                 if (selectedNodes.length < 2) {
                     circle.classList.add('selected');
                     selectedNodes.push({ x: circle.dataset.x, y: circle.dataset.y });
-                    const mode = getSelectedMode();
-                    if (mode === 'block_on_plane') {
-                        let url = '';
-                        let body = {};
-                        url = '/add_block_on_plane';
-                        const p1 = selectedNodes[0];
-                        const blockHeight = document.getElementById("blockHeight");
-                        const blockWidth = document.getElementById("blockWidth");
-                        body = { x: p1.x, y: p1.y, height: blockHeight.value, width: blockWidth.value };
-                        console.log(body);
-                        fetch(url, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify(body)
-                        }).then(response => {
-                            if (response.ok) {
-                                location.reload();
-                            } else {
-                                alert('Ошибка при добавлении груза на плоскость.');
-                            }
-                        });
-                        // Сброс
-                        selectedNodes.forEach(n => {
-                            const el = document.querySelector(`circle[data-x="${n.x}"][data-y="${n.y}"]`);
-                            el.classList.remove('selected');
-                        });
-                        selectedNodes = [];
-                    }
 
 
                 }
@@ -206,7 +176,7 @@
                     } else if (mode === 'string') {
                         url = '/add_string_by_nodes';
                         body = { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y };
-                    }
+                    } else { return; }
 
                     fetch(url, {
                         method: 'POST',
@@ -232,10 +202,10 @@
 
         // ctrl+z
         document.addEventListener('keydown', function (event) {
-            console.log(1)
+
             if (event.ctrlKey && event.code == 'KeyZ') {
                 event.preventDefault();
-                console.log(2)
+                console.log("ctrl+z")
                 fetch('/undo', { method: 'POST' }).then(() => location.reload());
             }
         });
@@ -249,6 +219,71 @@
                 }
             });
         });
+
+        document.querySelectorAll('.svg-object').forEach(el => {
+            el.addEventListener('click', e => {
+                const id = el.dataset.id;
+                const type = el.dataset.type;
+                e.stopPropagation();
+
+                // Приводим к типу Element
+                const currentEl = e.currentTarget;
+
+                // Получаем родительский svg
+                const svg = currentEl.closest('svg'); 
+                const pt = svg.createSVGPoint();
+                pt.x = event.clientX;
+                pt.y = event.clientY;
+
+                try {
+                    // Преобразуем в координаты внутри SVG (учитывает масштаб/прокрутку и т.п.)
+                    const svgPoint = pt.matrixTransform(svg.getScreenCTM().inverse());
+                    let x = svgPoint.x;
+                    let y = svgPoint.y;
+                    console.log("Клик внутри SVG по координатам: ", x, y);
+
+                    console.log(`Выбран объект: ${id} (${type})`);
+
+                    const mode = getSelectedMode();
+                    if (mode === 'block_on_plane') {
+                        let url = '';
+                        let body = {};
+                        url = '/add_block_on_object';
+                        // const p1 = selectedNodes[0];
+                        const blockHeight = document.getElementById("blockHeight");
+                        const blockWidth = document.getElementById("blockWidth");
+                        body = { x: x, y: y, height: blockHeight.value, width: blockWidth.value, id: id, type: type };
+                        console.log(body);
+                        fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(body)
+                        }).then(response => {
+                            if (response.ok) {
+                                location.reload();
+                            } else {
+                                alert('Ошибка при добавлении груза на плоскость.');
+                            }
+                        });
+                        // Сброс
+                        // selectedNodes.forEach(n => {
+                        //     const el = document.querySelector(`circle[data-x="${n.x}"][data-y="${n.y}"]`);
+                        //     el.classList.remove('selected');
+                        // });
+                        // selectedNodes = [];
+                    }
+                } catch (e) {
+                    console.log(e);
+                }
+
+
+
+
+            });
+        });
+
     </script>
 </body>
 
