@@ -1,7 +1,43 @@
 import math
 
 
-# Функции генерации SVG объектов
+def find_nearest_anchor(x, y, anchors, tolerance=5):
+    for anchor in anchors:
+        dx = anchor["x"] - x
+        dy = anchor["y"] - y
+        if abs(dx) <= tolerance and abs(dy) <= tolerance:
+            return anchor
+    return None
+
+
+def create_anchor_svg(anchor):
+    x = anchor["x"]
+    y = anchor["y"]
+    return f'<circle class="anchor-point" data-id="{anchor["id"]}" cx="{x}" cy="{y}" r="5" fill="red" stroke="black" />'
+
+
+def generate_anchors_for_plane(obj, spacing=40):
+    anchors = []
+    x_start = obj["x_0"]
+    y_start = obj["y_0"]
+    angle = obj.get("angle", 0)
+    length = obj.get("length", 500)
+
+    num_anchors = length // spacing + 1
+    for i in range(num_anchors):
+        x = x_start + i * spacing * math.cos(math.radians(angle))
+        y = y_start - i * spacing * math.sin(math.radians(angle))
+        anchor = {
+            "id": str(obj["id"]) + f"_{i}",
+            "type": "anchor",
+            "x": x,
+            "y": y,
+            "parent_id": obj["id"],
+        }
+        anchors.append(anchor)
+    return anchors
+
+
 def create_plane_svg(obj):
     """
     "type": "plane",
@@ -67,6 +103,6 @@ def generate_svg_for_object(obj):
         return create_block_svg(obj)
     elif obj["type"] == "string":
         return create_string_svg(obj)
+    elif obj["type"] == "anchor":
+        return create_anchor_svg(obj)
     return None
-
-

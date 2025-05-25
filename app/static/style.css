@@ -28,3 +28,12 @@ body {
 label {
     font-weight: bold;
 }
+
+.anchor-point {
+    cursor: pointer;
+    transition: fill 0.2s;
+}
+
+.anchor-point:hover {
+    fill: orange;
+}

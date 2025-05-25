@@ -20,28 +20,33 @@
     </div>
     <div id="sidebar">
         <div class="object-option">
-            <label><input type="radio" name="mode" value="plane" {% if mode == 'plane' %}checked{% endif %}> Плоскость</label>
+            <label><input type="radio" name="mode" value="plane" {% if mode=='plane' %}checked{% endif %}>
+                Плоскость</label>
             <div>
-                Угол наклона: <input type="number" id="plane-angle" value="0">°
+                Угол наклона: <input type="number" id="plane-angle" value="{{ params['plane_angle'] }}">°
                 <br>
-                Длина: <input type="number" id="plane-length" value="500"> px
+                Длина: <input type="number" id="plane-length" value="{{ params['plane_length'] }}"> px
             </div>
         </div>
         <div class="object-option">
-            <label><input type="radio" name="mode" value="block" {% if mode == 'block' %}checked{% endif %}> Груз</label>
+            <label><input type="radio" name="mode" value="block" {% if mode=='block' %}checked{% endif %}> Груз</label>
             <div>
-                Длина: <input type="number" id="block-width" value="80"> px
+                Длина: <input type="number" id="block-width" value="{{ params['block_width'] }}"> px
                 <br>
-                Высота: <input type="number" id="block-height" value="40"> px
+                Высота: <input type="number" id="block-height" value="{{ params['block_height'] }}"> px
             </div>
         </div>
         <div class="object-option">
-            <label><input type="radio" name="mode" value="string" {% if mode == 'string' %}checked{% endif %}> Нить</label>
+            <label><input type="radio" name="mode" value="string" {% if mode=='string' %}checked{% endif %}>
+                Нить</label>
             <div>
                 Крепление:
                 <select id="string-attachment">
-                    <option value="one-way">Одностороннее</option>
-                    <option value="two-way">Двустороннее</option>
+                    <option value="one-way" {% if params['string_attachment']=='one-way' %}selected{% endif %}>Одностороннее
+                    </option>
+                    <option value="two-way" {% if params['string_attachment']=='two-way' %}selected{% endif %}>Двустороннее
+                    </option>
+
                 </select>
             </div>
         </div>

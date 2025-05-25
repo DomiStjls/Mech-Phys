@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const modeRadios = document.querySelectorAll('input[name="mode"]');
-    console.log(modeRadios);
+    // console.log(modeRadios);
     modeRadios.forEach(radio => {
         radio.addEventListener("change", () => {
             const selected = getSelectedMode();
@@ -91,6 +91,61 @@ document.addEventListener("DOMContentLoaded", () => {
         //     renderObject(data.object);
         // }
     });
+    let selectedAnchorId = null;
+
+    document.addEventListener("click", function (e) {
+        if (e.target.classList.contains("anchor-point")) {
+            selectedAnchorId = e.target.dataset.id;
+            console.log("Выбрана точка крепления:", selectedAnchorId);
+
+            // Визуально подсветим
+            document.querySelectorAll(".anchor-point").forEach(p => p.setAttribute("fill", "red"));
+            e.target.setAttribute("fill", "orange");
+        }
+    });
+
+    // Функция для отправки параметров на сервер с дебонсингом
+    let updateTimeout = null;
+    async function updateParams() {
+        if (updateTimeout) {
+            clearTimeout(updateTimeout);
+        }
+        updateTimeout = setTimeout(async () => {
+            const params = {
+                plane_angle: document.getElementById("plane-angle").value,
+                plane_length: document.getElementById("plane-length").value,
+                block_width: document.getElementById("block-width").value,
+                block_height: document.getElementById("block-height").value,
+                string_attachment: document.getElementById("string-attachment").value
+            };
+
+            try {
+                await fetch("/set_params", {
+                    method: "POST",
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params)
+                });
+                console.log("Параметры сохранены");
+            } catch (error) {
+                console.error("Ошибка при сохранении параметров:", error);
+            }
+        }, 500);
+    }
+
+    const paramInputs = [
+        document.getElementById("plane-angle"),
+        document.getElementById("plane-length"),
+        document.getElementById("block-width"),
+        document.getElementById("block-height"),
+        document.getElementById("string-attachment")
+    ];
+
+    paramInputs.forEach(input => {
+        if (input) {
+            input.addEventListener("change", updateParams);
+            input.addEventListener("input", updateParams); // для сохранения при вводе с дебонсингом
+        }
+    });
 
     // ctrl+z
     document.addEventListener('keydown', function (event) {
@@ -101,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
             fetch('/undo', { method: 'POST' }).then(() => location.reload());
         }
     });
-    // ctrl+z
+    // ctrl+c
     document.addEventListener('keydown', function (event) {
 
         if (event.ctrlKey && event.code == 'KeyC') {
@@ -120,5 +175,5 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     });
-  
+
 });
