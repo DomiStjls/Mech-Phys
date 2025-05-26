@@ -15,8 +15,8 @@ def get_default_params():
     }
 
 
-def load_scene():
-    if os.path.exists(SCENE_PATH):
+def load_scene(clear=False):
+    if os.path.exists(SCENE_PATH) and not clear:
         with open(SCENE_PATH, "r") as f:
             return json.load(f)
     return {

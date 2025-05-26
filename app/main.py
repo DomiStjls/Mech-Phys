@@ -95,7 +95,7 @@ async def add_object(
             ),
         }
         anchors = generate_anchors_for_plane(obj, 80)
-        scene["objects"].extend(anchors)
+
     elif type == "block":
         width = int(data["width"])
         height = int(data["height"])
@@ -122,6 +122,8 @@ async def add_object(
         }
 
     scene["objects"].append(obj)
+    if type == "plane":
+        scene["objects"].extend(anchors)
     scene["history"].append({"action": "add", "object": obj})
     save_scene(scene)
     return {"status": "added", "object": obj}
@@ -153,12 +155,26 @@ async def undo(request: Request):
     scene = load_scene()
     scene["history"].pop()
     object = scene["objects"].pop()
-    if object["type"] == "plane":
+    # if object["type"] == "plane":
+    #     scene_copy = [
+    #         el
+    #         for el in copy.deepcopy(scene["objects"])
+    #         if not (
+    #             el["type"] == "anchor" and el.get("parent_id", None) == object["id"] or el["id"] == object["id"]
+    #         )
+    #     ]
+    #     scene["objects"] = copy.deepcopy(scene_copy)
+    if object["type"] == "anchor":
         scene_copy = [
             el
             for el in copy.deepcopy(scene["objects"])
             if not (
-                el["type"] == "anchor" and el.get("parent_id", None) == object["id"]
+                (
+                    el["type"] == "anchor"
+                    and el.get("parent_id", None) == object["parent_id"]
+                )
+                or el["id"] == object["id"]
+                or el["id"] == object["parent_id"]
             )
         ]
         scene["objects"] = copy.deepcopy(scene_copy)
@@ -169,6 +185,6 @@ async def undo(request: Request):
 
 @app.post("/clear")
 async def clear(request: Request):
-    scene = load_scene()
+    scene = load_scene(clear=True)
     save_scene(scene)
     return {"status": "ok"}
