@@ -13,7 +13,7 @@ def find_nearest_anchor(x, y, anchors, tolerance=5):
 def create_anchor_svg(anchor):
     x = anchor["x"]
     y = anchor["y"]
-    return f'<circle class="anchor-point" data-id="{anchor["id"]}" cx="{x}" cy="{y}" r="5" fill="red" stroke="black" />'
+    return f'<circle class="anchor-point" data-id="{anchor["id"]}" cx="{x}" cy="{y}" r="5" fill="blue" stroke="black" />'
 
 
 def generate_anchors_for_plane(obj, spacing=40):
@@ -73,9 +73,10 @@ def create_block_svg(obj):
     """
     x = obj["x_0"]
     y = obj["y_0"]
+    
     width = int(obj.get("width", 80))
     height = int(obj.get("height", 40))
-    svg = f'<rect x="{x}" y="{y}" width="{width}" height="{height}" fill="green" fill-opacity="0.4" stroke="black" />'
+    svg = f'<rect x="{x}" y="{y}" width="{width}" height="{height}" fill="green" fill-opacity="0.4" stroke="black" transform="rotate({obj["angle"]}, {x}, {y})" />'
     return svg
 
 

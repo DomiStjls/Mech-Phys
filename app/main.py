@@ -8,7 +8,11 @@ import uuid
 import base64
 import math
 import copy
-from app.logic.elements import generate_svg_for_object, generate_anchors_for_plane
+from app.logic.elements import (
+    generate_svg_for_object,
+    generate_anchors_for_plane,
+    find_nearest_anchor,
+)
 from app.logic.params import save_params, load_params, save_scene, load_scene
 
 app = FastAPI()
@@ -38,7 +42,7 @@ async def get_main_page(request: Request):
         request.session["mode"] = "plane"
 
     params = load_params()
-    print(params)
+
     return templates.TemplateResponse(
         "index.html",
         {
@@ -87,12 +91,12 @@ async def add_object(
             "length": length,
             "angle": angle,
             "id": str(short_uuid_base64()),
-            "x_center": int(
-                x + 0.5 * int(data["length"]) * math.cos(math.radians(angle))
-            ),
-            "y_center": int(
-                y - 0.5 * int(data["length"]) * math.sin(math.radians(angle))
-            ),
+            # "x_center": int(
+            #     x + 0.5 * int(data["length"]) * math.cos(math.radians(angle))
+            # ),
+            # "y_center": int(
+            #     y - 0.5 * int(data["length"]) * math.sin(math.radians(angle))
+            # ),
         }
         anchors = generate_anchors_for_plane(obj, 80)
 
@@ -106,8 +110,8 @@ async def add_object(
             "width": width,
             "height": height,
             "id": str(short_uuid_base64()),
-            "x_center": int(x + 0.5 * width),
-            "y_center": int(y + 0.5 * height),
+            # "x_center": int(x - 0.5 * width),
+            # "y_center": int(y - 0.5 * height),
             "angle": 0,
         }
     elif type == "string":
@@ -129,25 +133,66 @@ async def add_object(
     return {"status": "added", "object": obj}
 
 
+def new_rel():
+    pass
+
+
 @app.post("/add_relation")
 async def add_relation(
     request: Request,
 ):
     data = await request.json()
-    source_id = data["source"]
-    target_id = data["target"]
-    relation_type = data["type"]
     scene = load_scene()
-    relation = {
-        "source": source_id,
-        "target": target_id,
-        "type": relation_type,
-        "id": str(short_uuid_base64()),
-    }
-    scene["relations"].append(relation)
-    scene["history"].append({"action": "add_relation", "relation": relation})
+    x, y = map(int, (data["x"], data["y"]))
+    id = data["anchor_id"]
+    add = data["type_add"]
+    # nearest_anchor = find_nearest_anchor(x, y, [el for el in scene["objects"] if el["type"] == "anchor"])
+    anchor = [el for el in scene["objects"] if el["id"] == id][0]
+    nearest_anchor = anchor
+    print(f"nearest anchor: {nearest_anchor}, data: {data}")
+    obj_parent = [
+        el for el in scene["objects"] if el["id"] == nearest_anchor["parent_id"]
+    ][0]
+    angle = obj_parent.get("angle", 0)
+    if add == "plane" and obj_parent["type"] == "plane":
+        if data["angle"] == angle:  # ошибка в пересечении объектов
+            return {"status": "error in relation (intersection)"}
+        obj = {
+            "type": "plane",
+            "x_0": nearest_anchor["x"],
+            "y_0": nearest_anchor["y"],
+            "length": int(data["length"]),
+            "angle": int(data["angle"]),
+            "id": str(short_uuid_base64()),
+            # "x_center": int(
+            #     x + 0.5 * int(data["length"]) * math.cos(math.radians(data["angle"]))
+            # ),
+            # "y_center": int(
+            #     y - 0.5 * int(data["length"]) * math.sin(math.radians(data["angle"]))
+            # ),
+        }
+        new_rel()
+        scene["objects"].append(obj)
+        scene["history"].append({"action": "add", "object": obj})
+    if add == "block" and obj_parent["type"] == "plane":
+        # TODO пересечение объектов проверка
+
+        m = -1 if math.tan(math.radians(angle)) > 0 else 1
+        obj = {
+            "type": "block",
+            "x_0": x,
+            "y_0": y,
+            "width": int(data["width"]),
+            "height": int(data["height"]),
+            "id": str(short_uuid_base64()),
+            # "x_center": int(x + 0.5 * data["width"]),
+            # "y_center": int(y + 0.5 * data["height"]),
+            "angle": angle * m,
+        }
+        scene["objects"].append(obj)
+        scene["history"].append({"action": "add", "object": obj})
     save_scene(scene)
-    return {"status": "relation added", "relation": relation}
+    return {"status": "relation added"}
 
 
 @app.post("/undo")
