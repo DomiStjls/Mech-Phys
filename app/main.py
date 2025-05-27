@@ -110,8 +110,8 @@ async def add_object(
             "width": width,
             "height": height,
             "id": str(short_uuid_base64()),
-            # "x_center": int(x - 0.5 * width),
-            # "y_center": int(y - 0.5 * height),
+            "x_rotate": x,
+            "y_rotate": y - height,
             "angle": 0,
         }
     elif type == "string":
@@ -176,19 +176,41 @@ async def add_relation(
         scene["history"].append({"action": "add", "object": obj})
     if add == "block" and obj_parent["type"] == "plane":
         # TODO пересечение объектов проверка
-
-        m = -1 if math.tan(math.radians(angle)) > 0 else 1
+        x1, y1 = nearest_anchor["x"], nearest_anchor["y"]
+        height = int(data["height"])
+        # x2 = x1 + length * math.cos(a)
+        # y2 = y1 - length * math.sin(a)
+        angle = angle % 360
+        if 0 <= angle < 90:
+            m = -1
+        elif 90 <= angle < 180:
+            m = 1
+        elif 180 <= angle < 270:
+            m = -1
+            angle = angle - 180
+        elif 270 <= angle < 360:
+            m = 1
+            angle = 360 - angle
+        a = math.radians(angle)
+        rotate_x = x1 + height * math.sin(a) * m
+        rotate_y = y1 - height * math.cos(a)
+        
+        
+        # print(m, angle % 360)
         obj = {
             "type": "block",
             "x_0": x,
             "y_0": y,
             "width": int(data["width"]),
-            "height": int(data["height"]),
+            "height": height,
             "id": str(short_uuid_base64()),
             # "x_center": int(x + 0.5 * data["width"]),
             # "y_center": int(y + 0.5 * data["height"]),
-            "angle": angle * m,
+            "x_rotate": rotate_x,
+            "y_rotate": rotate_y,
+            "angle": angle % 360 * m,
         }
+        new_rel()
         scene["objects"].append(obj)
         scene["history"].append({"action": "add", "object": obj})
     save_scene(scene)

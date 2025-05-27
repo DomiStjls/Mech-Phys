@@ -69,14 +69,18 @@ def create_block_svg(obj):
     "id": str(uuid.uuid4()),
     "x_0": int(x - 0.5 * width),
     "y_0": int(y - 0.5 * height),
+    "x_rotate": ,
+    "y_rotate": ,
     "angle": 0,
     """
-    x = obj["x_0"]
-    y = obj["y_0"]
-    
+    # x = obj["x_0"]
+    # y = obj["y_0"]
+
     width = int(obj.get("width", 80))
     height = int(obj.get("height", 40))
-    svg = f'<rect x="{x}" y="{y}" width="{width}" height="{height}" fill="green" fill-opacity="0.4" stroke="black" transform="rotate({obj["angle"]}, {x}, {y})" />'
+    x_rotate = obj['x_rotate']
+    y_rotate = obj['y_rotate']
+    svg = f'<rect x="{x_rotate}" y="{y_rotate}" width="{width}" height="{height}" fill="green" fill-opacity="0.4" stroke="black" transform="rotate({obj["angle"]}, {x_rotate}, {y_rotate})" />'
     return svg
 
 
