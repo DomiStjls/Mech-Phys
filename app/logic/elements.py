@@ -13,31 +13,36 @@ def find_nearest_anchor(x, y, anchors, tolerance=5):
 def create_anchor_svg(anchor):
     x = anchor["x"]
     y = anchor["y"]
-    return f'<circle class="anchor-point" data-id="{anchor["id"]}" cx="{x}" cy="{y}" r="5" fill="blue" stroke="black" />'
+    color = "blue" if anchor["parent_type"] == "plane" else "green"
+    return f'<circle class="anchor-point" data-id="{anchor["id"]}" cx="{x}" cy="{y}" r="5" fill="{color}" stroke="black" />'
 
 
-def creat_anchor(x, y, parent_id, id):
+def creat_anchor(x, y, parent_id, id, parent_type):
     return {
         "id": f"{id}",
         "type": "anchor",
         "x": x,
         "y": y,
         "parent_id": parent_id,
+        "parent_type": parent_type,
     }
+
+
 def generate_anchors_for_plane(obj, spacing=40, no_first=False):
     anchors = []
     x_start = obj["x_0"]
     y_start = obj["y_0"]
     angle = obj.get("angle", 0)
     length = obj.get("length", 500)
-    new_spacing = length // 2
-    while new_spacing > spacing:
-        new_spacing //= 2
-    num_anchors = length // new_spacing + 1
-    for i in range(int(no_first), num_anchors):
-        x = round(x_start + i * new_spacing * math.cos(math.radians(angle)), 2)
-        y = round(y_start - i * new_spacing * math.sin(math.radians(angle)), 2)
-        anchor = creat_anchor(x, y, obj["id"], f"{obj['id']}_{i}")
+    new_step = length / 2
+    while new_step > spacing * 2:
+        new_step /= 2
+    num_anchors = length // new_step + 1
+    print(new_step, num_anchors)
+    for i in range(int(no_first), int(num_anchors)):
+        x = round(x_start + i * new_step * math.cos(math.radians(angle)), 2)
+        y = round(y_start - i * new_step * math.sin(math.radians(angle)), 2)
+        anchor = creat_anchor(x, y, obj["id"], f"{obj['id']}_{i}", obj["type"])
         anchors.append(anchor)
     return anchors
 
@@ -47,32 +52,95 @@ def generate_anchors_for_block(block, step=40, no_first=False):
     width = int(block.get("width", 80))
     height = int(block.get("height", 40))
     anchors = []
-    new_step = width // 2
-    while new_step > step * 2:
-        new_step //= 2
+    new_step = width
     k = 0
-    cos = math.cos(math.radians(block["angle"])) 
-    sin = math.sin(math.radians(block["angle"])) if block["angle"] else 1
-    print(new_step)
-    for i in range(int(no_first), width + 1, new_step):
-        anchor = creat_anchor(round(x + i * cos, 2), y,block["id"], f"{block['id']}_{k}")
+    angle = abs(block.get("angle", 0))
+    cos = math.cos(math.radians(angle))
+    sin = math.sin(math.radians(angle))
+    while new_step > step * 2:
+        anchor = creat_anchor(
+            round(x + new_step * cos, 2),
+            round(y - new_step * sin, 2),
+            block["id"],
+            f"{block['id']}_{k}",
+            block["type"],
+        )
         k += 1
         anchors.append(anchor)
-        anchor = creat_anchor(round(x + i * cos, 2), y - height * sin,block["id"], f"{block['id']}_{k}")
+        anchor = creat_anchor(
+            round(x + new_step * cos - height * sin, 2),
+            round(y - height * cos - new_step * sin, 2),
+            block["id"],
+            f"{block['id']}_{k}",
+            block["type"],
+        )
         k += 1
         anchors.append(anchor)
+        new_step /= 2
 
-    new_step = height // 2
+    # print(new_step, num_anchors, block["angle"])
+    # for i in range(int(no_first), int(num_anchors) - 1):
+    #     anchor = creat_anchor(
+    #         round(x + i * new_step * cos, 2),
+    #         round(y - i * new_step * sin, 2),
+    #         block["id"],
+    #         f"{block['id']}_{k}",
+    #         block["type"],
+    #     )
+    #     k += 1
+    #     anchors.append(anchor)
+    #     anchor = creat_anchor(
+    #         round(x + i * new_step * cos - height * sin, 2),
+    #         round(y - height * cos - i * new_step * sin, 2),
+    #         block["id"],
+    #         f"{block['id']}_{k}",
+    #         block["type"],
+    #     )
+    #     k += 1
+    #     anchors.append(anchor)
+
+    new_step = height
     while new_step > step:
-        new_step //= 2
-    print(new_step)
-    for i in range(1, height - 1, new_step):
-        anchor = creat_anchor(x, round(y - i * sin, 2),block["id"], f"{block['id']}_{k}")
+        anchor = creat_anchor(
+            round(x - new_step * sin, 2),
+            round(y - new_step * cos, 2),
+            block["id"],
+            f"{block['id']}_{k}",
+            block["type"],
+        )
         anchors.append(anchor)
         k += 1
-        anchor = creat_anchor(x + width * cos, round(y - i * sin, 2),block["id"], f"{block['id']}_{k}")
+        anchor = creat_anchor(
+            round(x + width * cos - new_step * sin, 2),
+            round(y - new_step * cos - width * sin, 2),
+            block["id"],
+            f"{block['id']}_{k}",
+            block["type"],
+        )
         anchors.append(anchor)
         k += 1
+        new_step /= 2
+    num_anchors = height / new_step + 1
+    print(new_step, num_anchors)
+    # for i in range(1, int(num_anchors) - 1):
+    #     anchor = creat_anchor(
+    #         round(x - new_step * sin, 2),
+    #         round(y - i * new_step * cos, 2),
+    #         block["id"],
+    #         f"{block['id']}_{k}",
+    #         block["type"],
+    #     )
+    #     anchors.append(anchor)
+    #     k += 1
+    #     anchor = creat_anchor(
+    #         round(x + width * cos - new_step * sin, 2),
+    #         round(y - i * new_step * cos - width * sin, 2),
+    #         block["id"],
+    #         f"{block['id']}_{k}",
+    #         block["type"],
+    #     )
+    #     anchors.append(anchor)
+    #     k += 1
     return anchors
 
 

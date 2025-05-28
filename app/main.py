@@ -45,7 +45,7 @@ async def get_main_page(request: Request):
         request.session["mode"] = "plane"
 
     params = load_params()
-    print(scene["objects"], scene["anchors"])
+    # print(scene["objects"], scene["anchors"])
     return templates.TemplateResponse(
         "index.html",
         {
@@ -139,11 +139,12 @@ async def add_object(
     return {"status": "added", "object": obj}
 
 
-def create_relation(objects, relation_type):
-    if relation_type == "string":
-        pass
-    if relation_type == "anchor":
-        main_anchor = objects["anchor"]
+def create_relation(objects={}, relation_type="anchor"):
+    # if relation_type == "string":
+    #     pass
+    # if relation_type == "anchor":
+    #     main_anchor = objects["anchor"]
+    pass
 
 
 @app.post("/add_relation")
@@ -213,7 +214,9 @@ async def add_relation(
         create_relation()
         # TODO angles on block
         scene["objects"].append(obj)
-        scene["anchors"].extend(generate_anchors_for_block(obj))
+        anchors = generate_anchors_for_block(obj, no_first=True)
+        for el in anchors:
+            scene["anchors"][el["id"]] = el
         scene["history"].append({"action": "add", "object": obj})
     if add == "string" and obj_parent["type"] == "plane":
         # TODO пересечение объектов проверка
@@ -241,6 +244,12 @@ async def undo(request: Request):
 
 @app.post("/clear")
 async def clear(request: Request):
+    scene = load_scene(clear=True)
+    save_scene(scene)
+    return {"status": "ok"}
+
+@app.get("/clear")
+async def clear_get(request: Request):
     scene = load_scene(clear=True)
     save_scene(scene)
     return {"status": "ok"}
