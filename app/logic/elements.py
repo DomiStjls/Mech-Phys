@@ -16,25 +16,63 @@ def create_anchor_svg(anchor):
     return f'<circle class="anchor-point" data-id="{anchor["id"]}" cx="{x}" cy="{y}" r="5" fill="blue" stroke="black" />'
 
 
-def generate_anchors_for_plane(obj, spacing=40):
+def creat_anchor(x, y, parent_id, id):
+    return {
+        "id": f"{id}",
+        "type": "anchor",
+        "x": x,
+        "y": y,
+        "parent_id": parent_id,
+    }
+def generate_anchors_for_plane(obj, spacing=40, no_first=False):
     anchors = []
     x_start = obj["x_0"]
     y_start = obj["y_0"]
     angle = obj.get("angle", 0)
     length = obj.get("length", 500)
-
-    num_anchors = length // spacing + 1
-    for i in range(num_anchors):
-        x = x_start + i * spacing * math.cos(math.radians(angle))
-        y = y_start - i * spacing * math.sin(math.radians(angle))
-        anchor = {
-            "id": str(obj["id"]) + f"_{i}",
-            "type": "anchor",
-            "x": x,
-            "y": y,
-            "parent_id": obj["id"],
-        }
+    new_spacing = length // 2
+    while new_spacing > spacing:
+        new_spacing //= 2
+    num_anchors = length // new_spacing + 1
+    for i in range(int(no_first), num_anchors):
+        x = round(x_start + i * new_spacing * math.cos(math.radians(angle)), 2)
+        y = round(y_start - i * new_spacing * math.sin(math.radians(angle)), 2)
+        anchor = creat_anchor(x, y, obj["id"], f"{obj['id']}_{i}")
         anchors.append(anchor)
+    return anchors
+
+
+def generate_anchors_for_block(block, step=40, no_first=False):
+    x, y = block["x_0"], block["y_0"]
+    width = int(block.get("width", 80))
+    height = int(block.get("height", 40))
+    anchors = []
+    new_step = width // 2
+    while new_step > step * 2:
+        new_step //= 2
+    k = 0
+    cos = math.cos(math.radians(block["angle"])) 
+    sin = math.sin(math.radians(block["angle"])) if block["angle"] else 1
+    print(new_step)
+    for i in range(int(no_first), width + 1, new_step):
+        anchor = creat_anchor(round(x + i * cos, 2), y,block["id"], f"{block['id']}_{k}")
+        k += 1
+        anchors.append(anchor)
+        anchor = creat_anchor(round(x + i * cos, 2), y - height * sin,block["id"], f"{block['id']}_{k}")
+        k += 1
+        anchors.append(anchor)
+
+    new_step = height // 2
+    while new_step > step:
+        new_step //= 2
+    print(new_step)
+    for i in range(1, height - 1, new_step):
+        anchor = creat_anchor(x, round(y - i * sin, 2),block["id"], f"{block['id']}_{k}")
+        anchors.append(anchor)
+        k += 1
+        anchor = creat_anchor(x + width * cos, round(y - i * sin, 2),block["id"], f"{block['id']}_{k}")
+        anchors.append(anchor)
+        k += 1
     return anchors
 
 
@@ -78,8 +116,8 @@ def create_block_svg(obj):
 
     width = int(obj.get("width", 80))
     height = int(obj.get("height", 40))
-    x_rotate = obj['x_rotate']
-    y_rotate = obj['y_rotate']
+    x_rotate = obj["x_rotate"]
+    y_rotate = obj["y_rotate"]
     svg = f'<rect x="{x_rotate}" y="{y_rotate}" width="{width}" height="{height}" fill="green" fill-opacity="0.4" stroke="black" transform="rotate({obj["angle"]}, {x_rotate}, {y_rotate})" />'
     return svg
 

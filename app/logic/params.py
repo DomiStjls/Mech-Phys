@@ -23,6 +23,7 @@ def load_scene(clear=False):
         "objects": [],
         "relations": [],
         "history": [],
+        "anchors": {},
         "mode": "plane",
         "params": get_default_params(),
         # "svg_objects": [],
@@ -33,14 +34,7 @@ def load_params():
     if os.path.exists(PARAMS_PATH):
         with open(PARAMS_PATH, "r") as f:
             return json.load(f)
-    return {
-        "mode": "plane",
-        "plane_angle": 0,
-        "plane_length": 500,
-        "block_width": 80,
-        "block_height": 40,
-        "string_attachment": "one-way",
-    }
+    return get_default_params()
 
 
 def save_params(params):

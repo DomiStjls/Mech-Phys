@@ -11,7 +11,7 @@ import copy
 from app.logic.elements import (
     generate_svg_for_object,
     generate_anchors_for_plane,
-    find_nearest_anchor,
+    generate_anchors_for_block,
 )
 from app.logic.params import save_params, load_params, save_scene, load_scene
 
@@ -36,13 +36,16 @@ def favicon(request: Request):
 async def get_main_page(request: Request):
     scene = load_scene()
     svg_elements = [generate_svg_for_object(obj) for obj in scene.get("objects", [])]
+    svg_elements.extend(
+        [generate_svg_for_object(obj) for obj in scene.get("anchors", {}).values()]
+    )
 
     # Инициализация режима и параметров, если они не существуют
     if "mode" not in request.session:
         request.session["mode"] = "plane"
 
     params = load_params()
-
+    print(scene["objects"], scene["anchors"])
     return templates.TemplateResponse(
         "index.html",
         {
@@ -99,7 +102,8 @@ async def add_object(
             # ),
         }
         anchors = generate_anchors_for_plane(obj, 80)
-
+        for el in anchors:
+            scene["anchors"][el["id"]] = el
     elif type == "block":
         width = int(data["width"])
         height = int(data["height"])
@@ -114,6 +118,9 @@ async def add_object(
             "y_rotate": y - height,
             "angle": 0,
         }
+        anchors = generate_anchors_for_block(obj, 40)
+        for el in anchors:
+            scene["anchors"][el["id"]] = el
     elif type == "string":
         attachment = data["attachment"]
         obj = {
@@ -126,15 +133,17 @@ async def add_object(
         }
 
     scene["objects"].append(obj)
-    if type == "plane":
-        scene["objects"].extend(anchors)
+
     scene["history"].append({"action": "add", "object": obj})
     save_scene(scene)
     return {"status": "added", "object": obj}
 
 
-def new_rel():
-    pass
+def create_relation(objects, relation_type):
+    if relation_type == "string":
+        pass
+    if relation_type == "anchor":
+        main_anchor = objects["anchor"]
 
 
 @app.post("/add_relation")
@@ -146,8 +155,7 @@ async def add_relation(
     x, y = map(int, (data["x"], data["y"]))
     id = data["anchor_id"]
     add = data["type_add"]
-    # nearest_anchor = find_nearest_anchor(x, y, [el for el in scene["objects"] if el["type"] == "anchor"])
-    anchor = [el for el in scene["objects"] if el["id"] == id][0]
+    anchor = scene["anchors"].get(id)
     nearest_anchor = anchor
     print(f"nearest anchor: {nearest_anchor}, data: {data}")
     obj_parent = [
@@ -164,22 +172,17 @@ async def add_relation(
             "length": int(data["length"]),
             "angle": int(data["angle"]),
             "id": str(short_uuid_base64()),
-            # "x_center": int(
-            #     x + 0.5 * int(data["length"]) * math.cos(math.radians(data["angle"]))
-            # ),
-            # "y_center": int(
-            #     y - 0.5 * int(data["length"]) * math.sin(math.radians(data["angle"]))
-            # ),
         }
-        new_rel()
+        create_relation()
+        anchors = generate_anchors_for_plane(obj, 80, no_first=True)
+        for el in anchors:
+            scene["anchors"][el["id"]] = el
         scene["objects"].append(obj)
         scene["history"].append({"action": "add", "object": obj})
     if add == "block" and obj_parent["type"] == "plane":
         # TODO пересечение объектов проверка
         x1, y1 = nearest_anchor["x"], nearest_anchor["y"]
         height = int(data["height"])
-        # x2 = x1 + length * math.cos(a)
-        # y2 = y1 - length * math.sin(a)
         angle = angle % 360
         if 0 <= angle < 90:
             m = -1
@@ -194,8 +197,7 @@ async def add_relation(
         a = math.radians(angle)
         rotate_x = x1 + height * math.sin(a) * m
         rotate_y = y1 - height * math.cos(a)
-        
-        
+
         # print(m, angle % 360)
         obj = {
             "type": "block",
@@ -204,15 +206,19 @@ async def add_relation(
             "width": int(data["width"]),
             "height": height,
             "id": str(short_uuid_base64()),
-            # "x_center": int(x + 0.5 * data["width"]),
-            # "y_center": int(y + 0.5 * data["height"]),
             "x_rotate": rotate_x,
             "y_rotate": rotate_y,
-            "angle": angle % 360 * m,
+            "angle": angle * m,
         }
-        new_rel()
+        create_relation()
+        # TODO angles on block
         scene["objects"].append(obj)
+        scene["anchors"].extend(generate_anchors_for_block(obj))
         scene["history"].append({"action": "add", "object": obj})
+    if add == "string" and obj_parent["type"] == "plane":
+        # TODO пересечение объектов проверка
+        x1, y1 = nearest_anchor["x"], nearest_anchor["y"]
+        attachment = data["attachment"]
     save_scene(scene)
     return {"status": "relation added"}
 
@@ -222,29 +228,12 @@ async def undo(request: Request):
     scene = load_scene()
     scene["history"].pop()
     object = scene["objects"].pop()
-    # if object["type"] == "plane":
-    #     scene_copy = [
-    #         el
-    #         for el in copy.deepcopy(scene["objects"])
-    #         if not (
-    #             el["type"] == "anchor" and el.get("parent_id", None) == object["id"] or el["id"] == object["id"]
-    #         )
-    #     ]
-    #     scene["objects"] = copy.deepcopy(scene_copy)
-    if object["type"] == "anchor":
-        scene_copy = [
-            el
-            for el in copy.deepcopy(scene["objects"])
-            if not (
-                (
-                    el["type"] == "anchor"
-                    and el.get("parent_id", None) == object["parent_id"]
-                )
-                or el["id"] == object["id"]
-                or el["id"] == object["parent_id"]
-            )
-        ]
-        scene["objects"] = copy.deepcopy(scene_copy)
+    anchors = {
+        k: v
+        for k, v in scene["anchors"].items()
+        if not (v["parent_id"] == object["id"])
+    }
+    scene["anchors"] = copy.deepcopy(anchors)
 
     save_scene(scene)
     return {"status": "ok"}
