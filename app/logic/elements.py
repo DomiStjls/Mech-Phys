@@ -1,5 +1,7 @@
 import math
 
+from app.logic.params import load_scene
+
 
 def find_nearest_anchor(x, y, anchors, tolerance=5):
     for anchor in anchors:
@@ -18,6 +20,10 @@ def create_anchor_svg(anchor):
 
 
 def creat_anchor(x, y, parent_id, id, parent_type):
+    # проверка на то что точка с такими координатами существует
+    anchors = load_scene()["anchors"].values()
+    if find_nearest_anchor(x, y, anchors, tolerance=1) is not None:
+        return None
     return {
         "id": f"{id}",
         "type": "anchor",
@@ -57,90 +63,53 @@ def generate_anchors_for_block(block, step=40, no_first=False):
     angle = abs(block.get("angle", 0))
     cos = math.cos(math.radians(angle))
     sin = math.sin(math.radians(angle))
-    while new_step > step * 2:
-        anchor = creat_anchor(
-            round(x + new_step * cos, 2),
-            round(y - new_step * sin, 2),
-            block["id"],
-            f"{block['id']}_{k}",
-            block["type"],
-        )
-        k += 1
-        anchors.append(anchor)
-        anchor = creat_anchor(
-            round(x + new_step * cos - height * sin, 2),
-            round(y - height * cos - new_step * sin, 2),
-            block["id"],
-            f"{block['id']}_{k}",
-            block["type"],
-        )
-        k += 1
-        anchors.append(anchor)
-        new_step /= 2
 
-    # print(new_step, num_anchors, block["angle"])
-    # for i in range(int(no_first), int(num_anchors) - 1):
-    #     anchor = creat_anchor(
-    #         round(x + i * new_step * cos, 2),
-    #         round(y - i * new_step * sin, 2),
-    #         block["id"],
-    #         f"{block['id']}_{k}",
-    #         block["type"],
-    #     )
-    #     k += 1
-    #     anchors.append(anchor)
-    #     anchor = creat_anchor(
-    #         round(x + i * new_step * cos - height * sin, 2),
-    #         round(y - height * cos - i * new_step * sin, 2),
-    #         block["id"],
-    #         f"{block['id']}_{k}",
-    #         block["type"],
-    #     )
-    #     k += 1
-    #     anchors.append(anchor)
+    for i in range(5):
+        if (not no_first and i == 0) or i != 0:
+            anchor = creat_anchor(
+                round(x + i / 4 * new_step * cos, 2),
+                round(y - i / 4 * new_step * sin, 2),
+                block["id"],
+                f"{block['id']}_{k}",
+                block["type"],
+            )
+            k += 1
+            print(anchor)
+            if anchor is not None:
+                anchors.append(anchor)
+        anchor = creat_anchor(
+            round(x + i / 4 * new_step * cos - height * sin, 2),
+            round(y - height * cos - i / 4 * new_step * sin, 2),
+            block["id"],
+            f"{block['id']}_{k}",
+            block["type"],
+        )
+        k += 1
+        if anchor is not None:
+            anchors.append(anchor)
 
-    new_step = height
-    while new_step > step:
-        anchor = creat_anchor(
-            round(x - new_step * sin, 2),
-            round(y - new_step * cos, 2),
-            block["id"],
-            f"{block['id']}_{k}",
-            block["type"],
-        )
+    new_step = height / 2
+    anchor = creat_anchor(
+        round(x - new_step * sin, 2),
+        round(y - new_step * cos, 2),
+        block["id"],
+        f"{block['id']}_{k}",
+        block["type"],
+    )
+    if anchor is not None:
         anchors.append(anchor)
-        k += 1
-        anchor = creat_anchor(
-            round(x + width * cos - new_step * sin, 2),
-            round(y - new_step * cos - width * sin, 2),
-            block["id"],
-            f"{block['id']}_{k}",
-            block["type"],
-        )
+    k += 1
+    anchor = creat_anchor(
+        round(x + width * cos - new_step * sin, 2),
+        round(y - new_step * cos - width * sin, 2),
+        block["id"],
+        f"{block['id']}_{k}",
+        block["type"],
+    )
+
+    if anchor is not None:
         anchors.append(anchor)
-        k += 1
-        new_step /= 2
-    num_anchors = height / new_step + 1
-    print(new_step, num_anchors)
-    # for i in range(1, int(num_anchors) - 1):
-    #     anchor = creat_anchor(
-    #         round(x - new_step * sin, 2),
-    #         round(y - i * new_step * cos, 2),
-    #         block["id"],
-    #         f"{block['id']}_{k}",
-    #         block["type"],
-    #     )
-    #     anchors.append(anchor)
-    #     k += 1
-    #     anchor = creat_anchor(
-    #         round(x + width * cos - new_step * sin, 2),
-    #         round(y - i * new_step * cos - width * sin, 2),
-    #         block["id"],
-    #         f"{block['id']}_{k}",
-    #         block["type"],
-    #     )
-    #     anchors.append(anchor)
-    #     k += 1
+    k += 1
     return anchors
 
 

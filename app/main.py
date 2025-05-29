@@ -153,7 +153,7 @@ async def add_relation(
 ):
     data = await request.json()
     scene = load_scene()
-    x, y = map(int, (data["x"], data["y"]))
+    # x, y = map(int, (data["x"], data["y"]))
     id = data["anchor_id"]
     add = data["type_add"]
     anchor = scene["anchors"].get(id)
@@ -202,8 +202,8 @@ async def add_relation(
         # print(m, angle % 360)
         obj = {
             "type": "block",
-            "x_0": x,
-            "y_0": y,
+            "x_0": x1,
+            "y_0": y1,
             "width": int(data["width"]),
             "height": height,
             "id": str(short_uuid_base64()),
