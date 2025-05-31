@@ -159,7 +159,7 @@ async def add_relation(
     add = data["type_add"]
     anchor = scene["anchors"].get(id)
     nearest_anchor = anchor
-    print(f"nearest anchor: {nearest_anchor}, data: {data}")
+    # print(f"nearest anchor: {nearest_anchor}, data: {data}")
     obj_parent = [
         el for el in scene["objects"] if el["id"] == nearest_anchor["parent_id"]
     ][0]

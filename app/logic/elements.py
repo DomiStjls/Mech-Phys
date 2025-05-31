@@ -189,7 +189,7 @@ def create_string_svg(obj):
 
 
 def generate_svg_for_object(obj):
-    print(obj)
+    
     if obj["type"] == "plane":
         return create_plane_svg(obj)
     elif obj["type"] == "block":
