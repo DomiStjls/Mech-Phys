@@ -174,3 +174,7 @@ cython_debug/
 .pypirc
 
 requirements.txt
+
+data/
+
+notes.py

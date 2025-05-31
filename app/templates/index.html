@@ -1,290 +1,67 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 
 <head>
     <meta charset="UTF-8">
-    <title>Механика: рисоватор</title>
-    <link rel="stylesheet" href="static/style.css">
+    <title>Механика: Чертеж</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
 
+    </style>
 </head>
 
 <body>
-    <div id="header" style="display: flex; justify-content: center;">
-        <div id="title">
-            <h1>Рисоватор задач по механике</h1>
-            <!-- 
-            <form action="/add" method="post">
-                <label for="x">X:</label>
-                <input type="number" id="x" name="x" required>
-                <label for="y">Y:</label>
-                <input type="number" id="y" name="y" required>
-
-                <label for="type">Тип:</label>
-                <select name="type" id="type">
-                    <option value="block">Блок</option>
-                    <option value="force">Сила</option>
-                </select>
-
-                <button type="submit">Добавить</button>
-            </form> -->
-        </div>
-    </div>
-
-    <div id="main" style="display: flex; justify-content: center;">
-        <svg width="800" height="800" xmlns="http://www.w3.org/2000/svg" id="grid-svg">
-            <defs>
-                <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="3" orient="auto"
-                    markerUnits="strokeWidth">
-                    <path d="M0,0 L0,6 L9,3 z" fill="red" />
-                </marker>
-            </defs>
-
-            <!-- Сетка -->
-            <g stroke="#ccc" stroke-opacity="0.7" stroke-width="2">
-                {% for x in range(0, 800 + 1, 20) %}
-                <line x1="{{ x }}" y1="0" x2="{{ x }}" y2="800" />
-                {% endfor %}
-                {% for y in range(0, 800 + 1, 20) %}
-                <line x1="0" y1="{{ y }}" x2="800" y2="{{ y }}" />
-                {% endfor %}
-            </g>
-
-            <!-- Оси координат -->
-            <g stroke="black" stroke-width="2">
-                <line x1="0" y1="800" x2="800" y2="800" />
-                <line x1="0" y1="800" x2="0" y2="0" />
-            </g>
-
-            <!-- Деления -->
-            <g stroke="black" stroke-width="1">
-                {% for dx in range(0, 800 + 1, 20) %}
-                <line x1="{{ dx }}" y1="{{ 800 - 5 }}" x2="{{ dx }}" y2="{{ 800 + 5}}" />
-                {% endfor %}
-                {% for dy in range(0, 800 + 1, 20) %}
-                <line x1="0" y1="{{ dy }}" x2="5" y2="{{ dy }}" />
-                {% endfor %}
-            </g>
-
-            <!-- Подписи -->
-            <g fill="black" font-size="13" text-anchor="middle">
-                {% for dx in range(20, 800 - 20 + 1, 20 * 2) %}
-                <text x="{{ dx }}" y="790">{{ dx // 20 }}</text>
-                {% endfor %}
-                {% for dy in range(800 - 20, 20 - 1, -20 * 2) %}
-                <text x="20" y="{{ dy }}" text-anchor="end">{{ 800 // 20 - dy // 20 }}</text>
-                {% endfor %}
-            </g>
-
-            <!-- Узлы сетки (точки) -->
-            <g id="grid-nodes">
-                {% for x in range(20 * 2, 800 - 20 + 1, 20) %}
-                {% for y in range(20, 800 - 20 * 2 + 1, 20) %}
-                <circle class="grid-node" cx="{{ x }}" cy="{{ y }}" r="4" data-x="{{ x }}" data-y="{{ y }}" />
-                {% endfor %}
-                {% endfor %}
-            </g>
+    <div id="canvas">
+        <svg id="drawing-area" width="100%" height="100%">
 
             {{ svg_elements|safe }}
+
         </svg>
     </div>
-    <div id="controls">
-        <h2>Настройки</h2>
+    <div id="sidebar">
+        <div class="object-option">
+            <label><input type="radio" name="mode" value="plane" {% if mode=='plane' %}checked{% endif %}>
+                Плоскость</label>
+            <div>
+                Угол наклона: <input type="number" id="plane-angle" min="0" max="180"
+                    value="{{ params['plane_angle'] }}">°
+                <br>
+                Длина: <input type="number" id="plane-length" min="10" max="2000" value="{{ params['plane_length'] }}">
+                px
+            </div>
+        </div>
+        <div class="object-option">
+            <label><input type="radio" name="mode" value="block" {% if mode=='block' %}checked{% endif %}> Груз</label>
+            <div>
+                Длина: <input type="number" id="block-width" min="10" max="2000" value="{{ params['block_width'] }}"> px
+                <br>
+                Высота: <input type="number" id="block-height" min="10" max="1000" value="{{ params['block_height'] }}">
+                px
+            </div>
+        </div>
+        <div class="object-option">
+            <label><input type="radio" name="mode" value="string" {% if mode=='string' %}checked{% endif %}>
+                Нить</label>
+            <div>
+                Крепление:
+                <select id="string-attachment">
+                    <option value="one-way" {% if params['string_attachment']=='one-way' %}selected{% endif %}>
+                        Одностороннее (сначала выберете интерактивную точку, а потом точку основания)
+                    </option>
+                    <option value="two-way" {% if params['string_attachment']=='two-way' %}selected{% endif %}>
+                        Двустороннее (две точки)
+                    </option>
 
-        <form id="mode-form">
-            <label>
-                <input type="radio" name="mode" value="plane" checked />
-                Нарисовать плоскость
-            </label><br />
-            <label>
-                <input type="radio" name="mode" value="block" />
-                Нарисовать груз
-            </label><br />
-            <label>
-                <input type="radio" name="mode" value="string" />
-                Соединить нитью
-            </label><br />
-            <label>
-                <input id="blockOnPlaneRadio" type="radio" name="mode" value="block_on_plane" />
-                Добавить груз на плоскость
-            </label> <label id="heightLabel" style="display:none;">
-                Высота груза:
-                <input type="number" id="blockHeight" min="1" required />
-            </label>
-            <label id="widthLabel" style="display:none;">
-                Ширина груза:
-                <input type="number" id="blockWidth" min="1" required />
-            </label>
-        </form>
+                </select>
 
+            </div>
+        </div>
         <button id="clear-btn" type="button">Очистить рисунок</button>
     </div>
-    <script>
-        function getSelectedMode() {
-            return document.querySelector('input[name="mode"]:checked').value;
-        }
-        const blockOnPlaneRadio = document.getElementById("blockOnPlaneRadio");
-        const heightLabel = document.getElementById("heightLabel");
-        const weidthLabel = document.getElementById("widthLabel");
 
-        let selectedNodes = [];
-        document.querySelectorAll('input[name="mode"]').forEach(radio => {
-            radio.addEventListener('change', () => {
+    <!-- <script id="scene-data" type="application/json">{{ scene | tojson }}</script> -->
+    <script src="/static/script.js"></script>
 
-                if (blockOnPlaneRadio.checked) {
-                    heightLabel.style.display = 'inline-block';
-                    weidthLabel.style.display = 'inline-block';
-                    // bigGrid.style.display = 'none';
-                    // smallGrid.style.display = 'block';
-                    // smallGridNodes.style.display = 'block';
-                    // generateSmallGridNodes();
-                    selectedPoints = [];
-                } else {
-                    heightLabel.style.display = 'none';
-                    weidthLabel.style.display = 'none';
-                    // bigGrid.style.display = 'block';
-                    // smallGrid.style.display = 'none';
-                    // smallGridNodes.style.display = 'none';
-                    // smallGridNodes.innerHTML = '';
-                    selectedPoints = [];
-                }
-            });
-        })
-        document.querySelectorAll('circle.grid-node').forEach(circle => {
-            circle.addEventListener('click', () => {
-                if (selectedNodes.length < 2) {
-                    circle.classList.add('selected');
-                    selectedNodes.push({ x: circle.dataset.x, y: circle.dataset.y });
-
-
-                }
-
-                if (selectedNodes.length === 2) {
-                    const mode = getSelectedMode();
-
-                    const p1 = selectedNodes[0];
-                    const p2 = selectedNodes[1];
-
-                    let url = '';
-                    let body = {};
-
-                    if (mode === 'block') {
-                        url = '/add_block_by_nodes';
-                        body = { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y };
-                    } else if (mode === 'plane') {
-                        url = '/add_plane_by_nodes';
-                        body = { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y };
-                    } else if (mode === 'string') {
-                        url = '/add_string_by_nodes';
-                        body = { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y };
-                    } else { return; }
-
-                    fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(body)
-                    }).then(response => {
-                        if (response.ok) {
-                            location.reload();
-                        } else {
-                            alert('Ошибка при добавлении элемента.');
-                        }
-                    });
-
-                    // Сброс
-                    selectedNodes.forEach(n => {
-                        const el = document.querySelector(`circle[data-x="${n.x}"][data-y="${n.y}"]`);
-                        el.classList.remove('selected');
-                    });
-                    selectedNodes = [];
-                }
-            });
-        });
-
-        // ctrl+z
-        document.addEventListener('keydown', function (event) {
-
-            if (event.ctrlKey && event.code == 'KeyZ') {
-                event.preventDefault();
-                console.log("ctrl+z")
-                fetch('/undo', { method: 'POST' }).then(() => location.reload());
-            }
-        });
-        // Кнопка очистить рисунок
-        document.getElementById('clear-btn').addEventListener('click', () => {
-            fetch('/clear', { method: 'POST' }).then(response => {
-                if (response.ok) {
-                    location.reload();
-                } else {
-                    alert('Ошибка при очистке.');
-                }
-            });
-        });
-
-        document.querySelectorAll('.svg-object').forEach(el => {
-            el.addEventListener('click', e => {
-                const id = el.dataset.id;
-                const type = el.dataset.type;
-                e.stopPropagation();
-
-                // Приводим к типу Element
-                const currentEl = e.currentTarget;
-
-                // Получаем родительский svg
-                const svg = currentEl.closest('svg'); 
-                const pt = svg.createSVGPoint();
-                pt.x = event.clientX;
-                pt.y = event.clientY;
-
-                try {
-                    // Преобразуем в координаты внутри SVG (учитывает масштаб/прокрутку и т.п.)
-                    const svgPoint = pt.matrixTransform(svg.getScreenCTM().inverse());
-                    let x = svgPoint.x;
-                    let y = svgPoint.y;
-                    console.log("Клик внутри SVG по координатам: ", x, y);
-
-                    console.log(`Выбран объект: ${id} (${type})`);
-
-                    const mode = getSelectedMode();
-                    if (mode === 'block_on_plane') {
-                        let url = '';
-                        let body = {};
-                        url = '/add_block_on_object';
-                        // const p1 = selectedNodes[0];
-                        const blockHeight = document.getElementById("blockHeight");
-                        const blockWidth = document.getElementById("blockWidth");
-                        body = { x: x, y: y, height: blockHeight.value, width: blockWidth.value, id: id, type: type };
-                        console.log(body);
-                        fetch(url, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify(body)
-                        }).then(response => {
-                            if (response.ok) {
-                                location.reload();
-                            } else {
-                                alert('Ошибка при добавлении груза на плоскость.');
-                            }
-                        });
-                        // Сброс
-                        // selectedNodes.forEach(n => {
-                        //     const el = document.querySelector(`circle[data-x="${n.x}"][data-y="${n.y}"]`);
-                        //     el.classList.remove('selected');
-                        // });
-                        // selectedNodes = [];
-                    }
-                } catch (e) {
-                    console.log(e);
-                }
-
-
-
-
-            });
-        });
-
-    </script>
 </body>
 
 </html>
