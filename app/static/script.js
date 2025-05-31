@@ -27,11 +27,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const modeRadios = document.querySelectorAll('input[name="mode"]');
-    // console.log(modeRadios);
+
     modeRadios.forEach(radio => {
         radio.addEventListener("change", () => {
             const selected = getSelectedMode();
-            console.log(selected);
+
             if (selected) {
                 fetch("/set_mode", {
                     method: "POST",
@@ -41,58 +41,91 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     });
+    let anchors = [];
 
     svg.addEventListener("click", async (e) => {
-        const mode = getSelectedMode();
+
         if (e.target.classList.contains("anchor-point")) {
             let selectedAnchorId = null;
             selectedAnchorId = e.target.dataset.id;
             console.log("Выбрана точка крепления:", selectedAnchorId);
-
-            // Визуально подсветим
-            document.querySelectorAll(".anchor-point").forEach(p => p.setAttribute("fill", "blue"));
-            e.target.setAttribute("fill", "orange");
-
-            let body = { x: Math.round(e.clientX), y: Math.round(e.clientY), type_add: mode, anchor_id: selectedAnchorId };
+            const mode = getSelectedMode();
             const params = getObjectParams(mode);
-            for (const key in params) {
-                body[key] = params[key];
+            // Визуально подсветим
+            document.querySelectorAll(".anchor-point").forEach(p => p.setAttribute("fill", "grey"));
+            e.target.setAttribute("fill", "orange");
+            if (mode === "string") {
+                console.log(anchors, "Все выбранные точки для нити");
+                attachment = params["attachment"];
+                if (attachment === "two-way" && anchors.length === 1) {
+                    anchors.push({
+                        x: Math.round(e.clientX),
+                        y: Math.round(e.clientY),
+                        type_add: mode,
+                        anchor_id: selectedAnchorId,
+                    });
+                    body = { anchor_1: anchors[0].anchor_id, anchor_2: anchors[1].anchor_id, type_add: mode, attachment: attachment };
+                    const response = await fetch("/add_string", {
+                        method: "POST",
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    anchors = [];
+                    const data = await response.json();
+                    location.reload();
+                } else {
+                    anchors.push({
+                        x: Math.round(e.clientX),
+                        y: Math.round(e.clientY),
+                        type_add: mode,
+                        anchor_id: selectedAnchorId,
+                    });
+
+
+                }
+            } else {
+                let body = { x: Math.round(e.clientX), y: Math.round(e.clientY), type_add: mode, anchor_id: selectedAnchorId };
+
+                for (const key in params) {
+                    body[key] = params[key];
+                }
+                const response = await fetch("/add_relation", {
+                    method: "POST",
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await response.json();
+                location.reload();
             }
-            console.log(body);
-            const response = await fetch("/add_relation", {
-                method: "POST",
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-            const data = await response.json();
-            location.reload();
+
 
         } else {
-            
+
             const rect = svg.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-
+            const mode = getSelectedMode();
+            let params_string = getObjectParams("string");
             if (mode === "string") {
-                const target = e.target.closest(".svg-object");
-                if (target) {
-                    const id = target.getAttribute("data-id");
-                    if (!selectedObjectId) {
-                        selectedObjectId = id;
-                        target.setAttribute("stroke", "red");
-                    } else {
-                        // добавить связь
-                        await fetch("/add_relation", {
-                            method: "POST",
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(new URLSearchParams({
-                                source_id: selectedObjectId,
-                                target_id: id,
-                                relation_type: "string"
-                            }))
-                        });
-                        location.reload(); // временно, позже можно делать renderRelation()
-                    }
+                if (anchors.length === 1 && params_string["attachment"] === "one-way") {
+
+                    // добавить связь
+                    await fetch("/add_string", {
+                        method: "POST",
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            attachment: "one-way",
+                            anchor_1: anchors[0].anchor_id,
+                            x: Math.round(e.clientX),
+                            y: Math.round(e.clientY),
+                            mode: mode
+                        })
+                    });
+                    anchors = [];
+                    location.reload(); // временно, позже можно делать renderRelation()
+
+
+
                 }
                 return;
             }
@@ -103,7 +136,6 @@ document.addEventListener("DOMContentLoaded", () => {
             for (const key in params) {
                 body[key] = params[key];
             }
-            console.log(body);
             const response = await fetch("/add_object", {
                 method: "POST",
                 headers: { 'Content-Type': 'application/json' },
@@ -145,7 +177,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(params)
                 });
-                console.log("Параметры сохранены");
             } catch (error) {
                 console.error("Ошибка при сохранении параметров:", error);
             }
@@ -172,7 +203,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (event.ctrlKey && event.code == 'KeyZ') {
             event.preventDefault();
-            console.log("ctrl+z")
             fetch('/undo', { method: 'POST' }).then(() => location.reload());
         }
     });
@@ -181,7 +211,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (event.ctrlKey && event.code == 'KeyC') {
             event.preventDefault();
-            console.log("ctrl+c")
             fetch('/clear', { method: 'POST' }).then(() => location.reload());
         }
     });

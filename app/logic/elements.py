@@ -164,19 +164,32 @@ def create_string_svg(obj):
     "type": "string",
     "attachment": attachment,
     "id": str(uuid.uuid4()),
-    "x_0": x,
-    "y_0": y,
-    "angle": 0,
+    "x1": x,
+    "x2": x,
+    "y1": y,
+    "y2": y,
     """
-    x = obj["x_0"]
-    y = obj["y_0"]
+    x = obj["x1"]
+    y = obj["y1"]
     x2 = obj.get("x2", x + 100)
     y2 = obj.get("y2", y)
-    svg = f'<line x1="{x}" y1="{y}" x2="{x2}" y2="{y2}" stroke="black" stroke-width="2" />'
+    if obj["attachment"] == "two-way":
+        svg = f'<line x1="{x}" y1="{y}" x2="{x2}" y2="{y2}" stroke="black" stroke-width="2" />'
+    else:
+        angle = math.atan2(y2 - y, x2 - x)
+        xp1 = x2 - 20 * math.sin(angle)
+        yp1 = y2 + 20 * math.cos(angle)
+        xp2 = x2 + 20 * math.sin(angle)
+        yp2 = y2 - 20 * math.cos(angle)
+        svg = (
+            f'<line x1="{x}" y1="{y}" x2="{x2}" y2="{y2}" stroke="black" stroke-width="2" />\n'
+            + f'<line x1="{xp1}" y1="{yp1}" x2="{xp2}" y2="{yp2}" stroke="black" stroke-width="5" />'
+        )
     return svg
 
 
 def generate_svg_for_object(obj):
+    print(obj)
     if obj["type"] == "plane":
         return create_plane_svg(obj)
     elif obj["type"] == "block":

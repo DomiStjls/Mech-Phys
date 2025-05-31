@@ -122,15 +122,16 @@ async def add_object(
         for el in anchors:
             scene["anchors"][el["id"]] = el
     elif type == "string":
-        attachment = data["attachment"]
-        obj = {
-            "type": "string",
-            "attachment": attachment,
-            "id": str(short_uuid_base64()),
-            "x_0": x,
-            "y_0": y,
-            "angle": 0,
-        }
+        # attachment = data["attachment"]
+        # obj = {
+        #     "type": "string",
+        #     "attachment": attachment,
+        #     "id": str(short_uuid_base64()),
+        #     "x1": x,
+        #     "y1": y,
+        #     "angle": 0,
+        # }
+        pass
 
     scene["objects"].append(obj)
 
@@ -218,14 +219,46 @@ async def add_relation(
         for el in anchors:
             scene["anchors"][el["id"]] = el
         scene["history"].append({"action": "add", "object": obj})
-    if add == "string" and obj_parent["type"] == "plane":
-        # TODO пересечение объектов проверка
-        x1, y1 = nearest_anchor["x"], nearest_anchor["y"]
-        attachment = data["attachment"]
     save_scene(scene)
     return {"status": "relation added"}
 
-
+@app.post('/add_string')
+async def add_string(request: Request):
+    data = await request.json()
+    scene = load_scene()
+    attachment = data["attachment"]
+    if attachment == "two-way":
+        anchor_1 = scene["anchors"].get(data["anchor_1"])
+        anchor_2 = scene["anchors"].get(data["anchor_2"])
+        create_relation(objects={"anchor_1": anchor_1, "anchor_2": anchor_2}, relation_type="string")
+        obj = {
+            'type': 'string',
+            "attachment": attachment,
+            "id": str(short_uuid_base64()),
+            "x1": anchor_1["x"],
+            "y1": anchor_1["y"],
+            "x2": anchor_2["x"],
+            "y2": anchor_2["y"],
+        }
+        
+        
+    elif attachment == "one-way":
+        anchor_1 = scene["anchors"].get(data["anchor_1"])
+        create_relation(objects={"anchor_1": anchor_1}, relation_type="string")
+        obj = {
+            'type': 'string',
+            "attachment": attachment,
+            "id": str(short_uuid_base64()),
+            "x1": anchor_1["x"],
+            "y1": anchor_1["y"],
+            "x2": data["x"],
+            "y2": data['y'],
+        }
+        
+    
+    scene["history"].append({"action": "add", "object": obj})  
+    scene["objects"].append(obj)
+    save_scene(scene)
 @app.post("/undo")
 async def undo(request: Request):
     scene = load_scene()

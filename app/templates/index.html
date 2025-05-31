@@ -23,9 +23,11 @@
             <label><input type="radio" name="mode" value="plane" {% if mode=='plane' %}checked{% endif %}>
                 Плоскость</label>
             <div>
-                Угол наклона: <input type="number" id="plane-angle"  min="0" max="180" value="{{ params['plane_angle'] }}">°
+                Угол наклона: <input type="number" id="plane-angle" min="0" max="180"
+                    value="{{ params['plane_angle'] }}">°
                 <br>
-                Длина: <input type="number" id="plane-length" min="10" max="2000" value="{{ params['plane_length'] }}"> px
+                Длина: <input type="number" id="plane-length" min="10" max="2000" value="{{ params['plane_length'] }}">
+                px
             </div>
         </div>
         <div class="object-option">
@@ -33,7 +35,8 @@
             <div>
                 Длина: <input type="number" id="block-width" min="10" max="2000" value="{{ params['block_width'] }}"> px
                 <br>
-                Высота: <input type="number" id="block-height" min="10" max="1000" value="{{ params['block_height'] }}"> px
+                Высота: <input type="number" id="block-height" min="10" max="1000" value="{{ params['block_height'] }}">
+                px
             </div>
         </div>
         <div class="object-option">
@@ -42,12 +45,15 @@
             <div>
                 Крепление:
                 <select id="string-attachment">
-                    <option value="one-way" {% if params['string_attachment']=='one-way' %}selected{% endif %}>Одностороннее
+                    <option value="one-way" {% if params['string_attachment']=='one-way' %}selected{% endif %}>
+                        Одностороннее (сначала выберете интерактивную точку, а потом точку основания)
                     </option>
-                    <option value="two-way" {% if params['string_attachment']=='two-way' %}selected{% endif %}>Двустороннее
+                    <option value="two-way" {% if params['string_attachment']=='two-way' %}selected{% endif %}>
+                        Двустороннее (две точки)
                     </option>
 
                 </select>
+
             </div>
         </div>
         <button id="clear-btn" type="button">Очистить рисунок</button>
