@@ -24,7 +24,7 @@ from app.logic.features import (
     
 )
 
-from app.logic.physics import analyze_forces_at_point, check_equilibrium, analyze_all_forces
+from app.logic.physics import analyze_forces_at_point, analyze_all_forces
 
 app = FastAPI()
 app.add_middleware(SessionMiddleware, secret_key="Domik")
@@ -49,7 +49,7 @@ async def get_main_page(request: Request):
         request.session["mode"] = "plane"
 
     params = load_params()
-
+    print(scene['objects'])
     return templates.TemplateResponse(
         "index.html",
         {
@@ -154,14 +154,16 @@ async def add_relation(
             "id": str(short_uuid_base64()),
         }
 
-        # Создаем отношение между объектами
-        create_relation(anchor, [obj_parent, obj], "anchor")
+        
 
         anchors = generate_anchors_for_plane(obj, 80, no_first=True)
         for el in anchors:
             scene["anchors"][el["id"]] = el
         scene["objects"].append(obj)
         scene["history"].append({"action": "add", "object": obj})
+        save_scene(scene)
+        # Создаем отношение между объектами
+        create_relation(anchor, [obj_parent, obj], "anchor")
 
     if add == "block" and obj_parent["type"] == "plane":
         # TODO пересечение объектов проверка
@@ -196,7 +198,7 @@ async def add_relation(
         }
 
         # Создаем отношение между объектами
-        create_relation(nearest_anchor, [obj_parent, obj], "anchor")
+        
 
         # TODO angles on block
         scene["objects"].append(obj)
@@ -204,8 +206,10 @@ async def add_relation(
         for el in anchors:
             scene["anchors"][el["id"]] = el
         scene["history"].append({"action": "add", "object": obj})
+        save_scene(scene)
+        create_relation(nearest_anchor, [obj_parent, obj], "anchor")
 
-    save_scene(scene)
+    
     return {"status": "relation added"}
 
 
@@ -239,12 +243,7 @@ async def add_string(request: Request):
             "y2": anchor_2["y"],
         }
 
-        # Создаем отношения в обеих точках
-        if parent_1:
-            create_relation(anchor_1, [parent_1, obj], "string")
-
-        if parent_2:
-            create_relation(anchor_2, [parent_2, obj], "string")
+        
 
     elif attachment == "one-way":
         anchor_1 = scene["anchors"].get(data["anchor_1"])
@@ -270,6 +269,12 @@ async def add_string(request: Request):
     scene["history"].append({"action": "add", "object": obj})
     scene["objects"].append(obj)
     save_scene(scene)
+    if parent_1:
+        create_relation(anchor_1, [parent_1, obj], "string")
+
+    if attachment == "two-way" and parent_2:
+        create_relation(anchor_2, [parent_2, obj], "string")
+    
     return {"status": "string added"}
 
 
@@ -311,14 +316,12 @@ async def clear_get(request: Request):
 
 @app.get("/relations")
 async def get_relations(request: Request):
-    """Эндпоинт для получения информации об отношениях"""
     scene = load_scene()
     return {"relations": scene.get("relations", {})}
 
 
 @app.get("/relations/{object_id}")
 async def get_object_relations(request: Request, object_id: str):
-    """Получить все отношения для конкретного объекта"""
     scene = load_scene()
     relations = find_relations_for_object(scene, object_id)
     return {"object_id": object_id, "relations": relations}
@@ -326,7 +329,6 @@ async def get_object_relations(request: Request, object_id: str):
 
 @app.get("/forces")
 async def get_forces_analysis(request: Request):
-    """Получить анализ всех сил в системе"""
     scene = load_scene()
     analysis = analyze_all_forces(scene)
     return analysis
@@ -334,14 +336,13 @@ async def get_forces_analysis(request: Request):
 
 @app.get("/forces/relation/{relation_id}")
 async def get_relation_forces(request: Request, relation_id: str):
-    """Получить анализ сил для конкретного отношения"""
     scene = load_scene()
     relation = scene.get("relations", {}).get(relation_id)
     
     if not relation:
         return {"error": "Relation not found"}
     
-    analysis = analyze_forces_at_point(scene, relation)
+    analysis = analyze_forces_at_point(relation)
     return analysis
 
 

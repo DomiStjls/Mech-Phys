@@ -1,7 +1,11 @@
 import math
 
+from app.logic.features import load_scene
 
-def analyze_forces_at_point(scene, relation):
+g = 10
+ro = 0.01
+p = 0.01
+def analyze_forces_at_point(relation):
     """
     Анализирует силы, действующие в точке отношения
 
@@ -13,33 +17,29 @@ def analyze_forces_at_point(scene, relation):
         dict: анализ сил в точке
     """
     forces = []
+    scene = load_scene()
     point_x, point_y = relation["x"], relation["y"]
-
-    # Получаем объекты в данном отношении
     objects_in_relation = []
     for obj_id in relation["object_ids"]:
         obj = next((o for o in scene["objects"] if o["id"] == obj_id), None)
         if obj:
             objects_in_relation.append(obj)
 
-    # Анализируем каждый объект в отношении
     for obj in objects_in_relation:
         if obj["type"] == "block":
-            # Для блока всегда действует сила тяжести
             mass = obj.get(
-                "mass", obj["width"] * obj["height"] * 0.01
-            )  # условная масса
+                "mass", obj["width"] * obj["height"] * ro
+            )  # заглушка на массу надо бы добавить это в форму
             gravity_force = {
                 "type": "gravity",
                 "name": "F_g",
-                "magnitude": mass * 9.81,  # mg
-                "angle": 270,  # вниз
+                "magnitude": mass * g,  # mg
+                "angle": 270,  # вниз всегда
                 "direction": "down",
                 "object_id": obj["id"],
                 "description": f"Сила тяжести блока (масса ≈ {mass:.2f} кг)",
             }
             forces.append(gravity_force)
-
             # Проверяем, лежит ли блок на плоскости
             plane_supports = [
                 o
@@ -54,7 +54,7 @@ def analyze_forces_at_point(scene, relation):
                 normal_force = {
                     "type": "normal",
                     "name": "N",
-                    "magnitude": mass * 9.81 * math.cos(math.radians(plane_angle)),
+                    "magnitude": mass * g * math.cos(math.radians(plane_angle)),
                     "angle": normal_angle,
                     "direction": "perpendicular_to_plane",
                     "object_id": obj["id"],
@@ -95,9 +95,9 @@ def analyze_forces_at_point(scene, relation):
             total_tension = 0
             for suspended_obj in suspended_objects:
                 mass = suspended_obj.get(
-                    "mass", suspended_obj["width"] * suspended_obj["height"] * 0.01
+                    "mass", suspended_obj["width"] * suspended_obj["height"] * ro
                 )
-                total_tension += mass * 9.81
+                total_tension += mass * g
 
             if total_tension > 0:
                 tension_force = {
@@ -121,7 +121,7 @@ def analyze_forces_at_point(scene, relation):
 
             for supported_obj in supported_objects:
                 mass = supported_obj.get(
-                    "mass", supported_obj["width"] * supported_obj["height"] * 0.01
+                    "mass", supported_obj["width"] * supported_obj["height"] * ro
                 )
                 plane_angle = obj["angle"]
 
@@ -131,7 +131,7 @@ def analyze_forces_at_point(scene, relation):
                 reaction_force = {
                     "type": "reaction",
                     "name": "R",
-                    "magnitude": mass * 9.81 * math.cos(math.radians(plane_angle)),
+                    "magnitude": mass * g * math.cos(math.radians(plane_angle)),
                     "angle": reaction_angle,
                     "direction": "into_plane",
                     "object_id": obj["id"],
@@ -160,7 +160,7 @@ def check_equilibrium(forces):
         "is_equilibrium": total_magnitude < 0.1,  # допуск
         "resultant_magnitude": total_magnitude,
         "resultant_angle": math.degrees(math.atan2(sum_y, sum_x))
-        if total_magnitude > 0.01
+        if total_magnitude > p
         else 0,
         "sum_x": sum_x,
         "sum_y": sum_y,
@@ -190,7 +190,7 @@ def analyze_all_forces(scene):
     relations = scene.get("relations", {})
 
     for relation_id, relation in relations.items():
-        force_analysis = analyze_forces_at_point(scene, relation)
+        force_analysis = analyze_forces_at_point(relation)
         analysis["relations_analysis"].append(force_analysis)
 
         # Собираем силы по объектам

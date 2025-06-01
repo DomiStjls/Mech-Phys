@@ -44,7 +44,6 @@ def generate_anchors_for_plane(obj, spacing=40, no_first=False):
     while new_step > spacing * 2:
         new_step /= 2
     num_anchors = length // new_step + 1
-    print(new_step, num_anchors)
     for i in range(int(no_first), int(num_anchors)):
         x = round(x_start + i * new_step * math.cos(math.radians(angle)), 2)
         y = round(y_start - i * new_step * math.sin(math.radians(angle)), 2)
@@ -74,7 +73,6 @@ def generate_anchors_for_block(block, step=40, no_first=False):
                 block["type"],
             )
             k += 1
-            print(anchor)
             if anchor is not None:
                 anchors.append(anchor)
         anchor = creat_anchor(

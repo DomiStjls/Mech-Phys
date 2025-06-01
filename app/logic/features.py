@@ -79,6 +79,7 @@ def create_relation(anchor=None, objects=None, relation_type="anchor"):
                         scene["relations"][existing_relation_id]["object_ids"].append(
                             obj["id"]
                         )
+            save_scene(scene)
             return existing_relation_id
         else:
             # Создаем новое отношение
@@ -91,8 +92,10 @@ def create_relation(anchor=None, objects=None, relation_type="anchor"):
                 "y": anchor["y"],
                 "object_ids": [obj["id"] for obj in objects] if objects else [],
             }
+            save_scene(scene)
+            print(relation_id)
             return relation_id
-
+    
     return None
 
 
@@ -119,4 +122,5 @@ def remove_object_from_relations(scene, object_id):
     # Удаляем пустые отношения
     for rel_id in relations_to_remove:
         del scene["relations"][rel_id]
+    save_scene(scene)
 
