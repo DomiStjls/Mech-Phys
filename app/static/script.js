@@ -52,8 +52,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const mode = getSelectedMode();
             const params = getObjectParams(mode);
             // Визуально подсветим
-            document.querySelectorAll(".anchor-point").forEach(p => p.setAttribute("fill", "grey"));
-            e.target.setAttribute("fill", "orange");
+            // document.querySelectorAll(".anchor-point").forEach(p => p.setAttribute("fill", "grey"));
+            
             if (mode === "string") {
                 console.log(anchors, "Все выбранные точки для нити");
                 attachment = params["attachment"];
@@ -73,6 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     anchors = [];
                     const data = await response.json();
                     location.reload();
+
                 } else {
                     anchors.push({
                         x: Math.round(e.clientX),

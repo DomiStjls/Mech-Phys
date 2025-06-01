@@ -1,34 +1,34 @@
 /* Стили для SVG элементов */
-#drawing-area line {
+/* #drawing-area line {
     stroke: #2c3e50;
     stroke-width: 2;
     transition: stroke-width 0.2s ease;
-}
+} */
 
 #drawing-area line:hover {
-    stroke-width: 3;
+    stroke-width: 4;
 }
 
 #drawing-area rect {
-    fill: #ecf0f1;
+    fill: #9ab2b8;
     stroke: #2c3e50;
     stroke-width: 2;
     transition: all 0.2s ease;
 }
 
 #drawing-area rect:hover {
-    fill: #d5dbdb;
+    fill: #7fa7a7;
     stroke-width: 3;
 }
 
 /* Базовые круги (не интерактивные точки) */
-#drawing-area circle:not(.anchor-point) {
+/* #drawing-area circle:not(.anchor-point) {
     fill: #3498db;
     stroke: #2c3e50;
     stroke-width: 2;
     transition: all 0.2s ease;
-}
-
+} */
+/* 
 #drawing-area circle:not(.anchor-point):hover {
     fill: #2980b9;
     r: 6;
@@ -36,11 +36,11 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-}
+} */
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    /* background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); */
     height: 100vh;
     display: flex;
     color: #2c3e50;
@@ -192,7 +192,7 @@ body {
 }
 
 .anchor-point:hover {
-    fill: #2980b9;
+    fill: #2b5672;
     stroke-width: 3;
     r: 7;
     filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));

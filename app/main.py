@@ -4,8 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-import uuid
-import base64
+
 import math
 import copy
 from app.logic.elements import (
@@ -13,18 +12,25 @@ from app.logic.elements import (
     generate_anchors_for_plane,
     generate_anchors_for_block,
 )
-from app.logic.params import save_params, load_params, save_scene, load_scene
+from app.logic.features import (
+    save_params,
+    load_params,
+    save_scene,
+    load_scene,
+    create_relation,
+    find_relations_for_object,
+    remove_object_from_relations,
+    short_uuid_base64,
+    
+)
+
+from app.logic.physics import analyze_forces_at_point, check_equilibrium, analyze_all_forces
 
 app = FastAPI()
 app.add_middleware(SessionMiddleware, secret_key="Domik")
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
-
-
-def short_uuid_base64():
-    u = uuid.uuid4()
-    return base64.urlsafe_b64encode(u.bytes).rstrip(b"=").decode("ascii")
 
 
 @app.get("/favicon.ico")
@@ -39,13 +45,11 @@ async def get_main_page(request: Request):
     svg_elements.extend(
         [generate_svg_for_object(obj) for obj in scene.get("anchors", {}).values()]
     )
-
-    # Инициализация режима и параметров, если они не существуют
     if "mode" not in request.session:
         request.session["mode"] = "plane"
 
     params = load_params()
-    # print(scene["objects"], scene["anchors"])
+
     return templates.TemplateResponse(
         "index.html",
         {
@@ -62,8 +66,6 @@ async def get_main_page(request: Request):
 async def set_params(request: Request):
     data = await request.json()
     params = load_params()
-
-    # Обновляем только переданные параметры
     for key, value in data.items():
         if key in params:
             params[key] = value
@@ -74,7 +76,7 @@ async def set_params(request: Request):
 @app.post("/set_mode")
 async def set_mode(request: Request, mode: str = Form(...)):
     request.session["mode"] = mode
-    return {"status": "ok"}
+    return {"status": "mode is changed"}
 
 
 @app.post("/add_object")
@@ -94,12 +96,6 @@ async def add_object(
             "length": length,
             "angle": angle,
             "id": str(short_uuid_base64()),
-            # "x_center": int(
-            #     x + 0.5 * int(data["length"]) * math.cos(math.radians(angle))
-            # ),
-            # "y_center": int(
-            #     y - 0.5 * int(data["length"]) * math.sin(math.radians(angle))
-            # ),
         }
         anchors = generate_anchors_for_plane(obj, 80)
         for el in anchors:
@@ -122,16 +118,7 @@ async def add_object(
         for el in anchors:
             scene["anchors"][el["id"]] = el
     elif type == "string":
-        # attachment = data["attachment"]
-        # obj = {
-        #     "type": "string",
-        #     "attachment": attachment,
-        #     "id": str(short_uuid_base64()),
-        #     "x1": x,
-        #     "y1": y,
-        #     "angle": 0,
-        # }
-        pass
+        return {"status": "not implemented"}
 
     scene["objects"].append(obj)
 
@@ -140,30 +127,21 @@ async def add_object(
     return {"status": "added", "object": obj}
 
 
-def create_relation(objects={}, relation_type="anchor"):
-    # if relation_type == "string":
-    #     pass
-    # if relation_type == "anchor":
-    #     main_anchor = objects["anchor"]
-    pass
-
-
 @app.post("/add_relation")
 async def add_relation(
     request: Request,
 ):
     data = await request.json()
     scene = load_scene()
-    # x, y = map(int, (data["x"], data["y"]))
     id = data["anchor_id"]
     add = data["type_add"]
     anchor = scene["anchors"].get(id)
     nearest_anchor = anchor
-    # print(f"nearest anchor: {nearest_anchor}, data: {data}")
     obj_parent = [
         el for el in scene["objects"] if el["id"] == nearest_anchor["parent_id"]
     ][0]
     angle = obj_parent.get("angle", 0)
+
     if add == "plane" and obj_parent["type"] == "plane":
         if data["angle"] == angle:  # ошибка в пересечении объектов
             return {"status": "error in relation (intersection)"}
@@ -175,12 +153,16 @@ async def add_relation(
             "angle": int(data["angle"]),
             "id": str(short_uuid_base64()),
         }
-        create_relation()
+
+        # Создаем отношение между объектами
+        create_relation(anchor, [obj_parent, obj], "anchor")
+
         anchors = generate_anchors_for_plane(obj, 80, no_first=True)
         for el in anchors:
             scene["anchors"][el["id"]] = el
         scene["objects"].append(obj)
         scene["history"].append({"action": "add", "object": obj})
+
     if add == "block" and obj_parent["type"] == "plane":
         # TODO пересечение объектов проверка
         x1, y1 = nearest_anchor["x"], nearest_anchor["y"]
@@ -212,27 +194,43 @@ async def add_relation(
             "y_rotate": rotate_y,
             "angle": angle * m,
         }
-        create_relation()
+
+        # Создаем отношение между объектами
+        create_relation(nearest_anchor, [obj_parent, obj], "anchor")
+
         # TODO angles on block
         scene["objects"].append(obj)
         anchors = generate_anchors_for_block(obj, no_first=True)
         for el in anchors:
             scene["anchors"][el["id"]] = el
         scene["history"].append({"action": "add", "object": obj})
+
     save_scene(scene)
     return {"status": "relation added"}
 
-@app.post('/add_string')
+
+@app.post("/add_string")
 async def add_string(request: Request):
     data = await request.json()
     scene = load_scene()
     attachment = data["attachment"]
+
     if attachment == "two-way":
         anchor_1 = scene["anchors"].get(data["anchor_1"])
         anchor_2 = scene["anchors"].get(data["anchor_2"])
-        create_relation(objects={"anchor_1": anchor_1, "anchor_2": anchor_2}, relation_type="string")
+
+        # Находим родительские объекты якорей
+        parent_1 = next(
+            (obj for obj in scene["objects"] if obj["id"] == anchor_1["parent_id"]),
+            None,
+        )
+        parent_2 = next(
+            (obj for obj in scene["objects"] if obj["id"] == anchor_2["parent_id"]),
+            None,
+        )
+
         obj = {
-            'type': 'string',
+            "type": "string",
             "attachment": attachment,
             "id": str(short_uuid_base64()),
             "x1": anchor_1["x"],
@@ -240,36 +238,58 @@ async def add_string(request: Request):
             "x2": anchor_2["x"],
             "y2": anchor_2["y"],
         }
-        
-        
+
+        # Создаем отношения в обеих точках
+        if parent_1:
+            create_relation(anchor_1, [parent_1, obj], "string")
+
+        if parent_2:
+            create_relation(anchor_2, [parent_2, obj], "string")
+
     elif attachment == "one-way":
         anchor_1 = scene["anchors"].get(data["anchor_1"])
-        create_relation(objects={"anchor_1": anchor_1}, relation_type="string")
+        parent_1 = next(
+            (obj for obj in scene["objects"] if obj["id"] == anchor_1["parent_id"]),
+            None,
+        )
+
         obj = {
-            'type': 'string',
+            "type": "string",
             "attachment": attachment,
             "id": str(short_uuid_base64()),
             "x1": anchor_1["x"],
             "y1": anchor_1["y"],
             "x2": data["x"],
-            "y2": data['y'],
+            "y2": data["y"],
         }
-        
-    
-    scene["history"].append({"action": "add", "object": obj})  
+
+        # Создаем отношение только в первой точке
+        if parent_1:
+            create_relation(anchor_1, [parent_1, obj], "string")
+
+    scene["history"].append({"action": "add", "object": obj})
     scene["objects"].append(obj)
     save_scene(scene)
+    return {"status": "string added"}
+
+
 @app.post("/undo")
 async def undo(request: Request):
     scene = load_scene()
-    scene["history"].pop()
-    object = scene["objects"].pop()
-    anchors = {
-        k: v
-        for k, v in scene["anchors"].items()
-        if not (v["parent_id"] == object["id"])
-    }
-    scene["anchors"] = copy.deepcopy(anchors)
+    if scene["history"]:
+        scene["history"].pop()
+    if scene["objects"]:
+        object = scene["objects"].pop()
+
+        # Удаляем объект из всех отношений
+        remove_object_from_relations(scene, object["id"])
+
+        anchors = {
+            k: v
+            for k, v in scene["anchors"].items()
+            if not (v["parent_id"] == object["id"])
+        }
+        scene["anchors"] = copy.deepcopy(anchors)
 
     save_scene(scene)
     return {"status": "ok"}
@@ -281,8 +301,64 @@ async def clear(request: Request):
     save_scene(scene)
     return {"status": "ok"}
 
+
 @app.get("/clear")
 async def clear_get(request: Request):
     scene = load_scene(clear=True)
     save_scene(scene)
     return {"status": "ok"}
+
+
+@app.get("/relations")
+async def get_relations(request: Request):
+    """Эндпоинт для получения информации об отношениях"""
+    scene = load_scene()
+    return {"relations": scene.get("relations", {})}
+
+
+@app.get("/relations/{object_id}")
+async def get_object_relations(request: Request, object_id: str):
+    """Получить все отношения для конкретного объекта"""
+    scene = load_scene()
+    relations = find_relations_for_object(scene, object_id)
+    return {"object_id": object_id, "relations": relations}
+
+
+@app.get("/forces")
+async def get_forces_analysis(request: Request):
+    """Получить анализ всех сил в системе"""
+    scene = load_scene()
+    analysis = analyze_all_forces(scene)
+    return analysis
+
+
+@app.get("/forces/relation/{relation_id}")
+async def get_relation_forces(request: Request, relation_id: str):
+    """Получить анализ сил для конкретного отношения"""
+    scene = load_scene()
+    relation = scene.get("relations", {}).get(relation_id)
+    
+    if not relation:
+        return {"error": "Relation not found"}
+    
+    analysis = analyze_forces_at_point(scene, relation)
+    return analysis
+
+
+@app.get("/forces/object/{object_id}")
+async def get_object_forces(request: Request, object_id: str):
+    """Получить все силы, действующие на объект"""
+    scene = load_scene()
+    analysis = analyze_all_forces(scene)
+    
+    object_forces = analysis["objects_forces"].get(object_id, [])
+    
+    if not object_forces:
+        return {"error": "Object not found or no forces acting on it"}
+    
+    return {
+        "object_id": object_id,
+        "forces": object_forces,
+        "force_count": len(object_forces),
+        "total_force_magnitude": sum(f["magnitude"] for f in object_forces)
+    }

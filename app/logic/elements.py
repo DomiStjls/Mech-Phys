@@ -1,6 +1,6 @@
 import math
 
-from app.logic.params import load_scene
+from app.logic.features import load_scene
 
 
 def find_nearest_anchor(x, y, anchors, tolerance=5):
