@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализ сил</title>
+    <link rel="stylesheet" href="/static/popup-style.css">
+</head>
+
+<body>
+    <div class="forces-popup">
+        <div class="popup-header">
+            <!-- <button id="closePopupBtn">Закрыть</button> -->
+            <h2 class="popup-title">⚡ Анализ сил</h2>
+            <p class="popup-subtitle">Физический анализ объекта</p>
+        </div>
+
+        <div class="object-info">
+            <h3>
+                <span class="object-icon icon-{{ object.type }}"></span>
+                {{ object_type_name }}
+                {% if object.type == 'block' %}
+                ({{ object.width }}×{{ object.height }})
+                {% elif object.type == 'plane' %}
+                ({{ object.length }} ед., {{ object.angle }}°)
+                {% endif %}
+            </h3>
+        </div>
+
+        <div class="forces-container">
+            {% if forces %}
+            {% for force_type, type_forces in forces_by_type.items() %}
+            <div class="force-group">
+                <div class="force-group-title">
+                    {% if force_type == 'gravity' %}🌍 Гравитационные силы
+                    {% elif force_type == 'normal' %}⬆️ Силы реакции опоры
+                    {% elif force_type == 'friction' %}↔️ Силы трения
+                    {% elif force_type == 'tension' %}🔗 Силы натяжения
+                    {% elif force_type == 'reaction' %}↩️ Силы реакции
+                    {% else %}⚙️ {{ force_type|title }}
+                    {% endif %}
+                </div>
+
+                {% for force in type_forces %}
+                <div class="force-item">
+                    <div class="force-info">
+                        <div class="force-name">{{ force.name }}</div>
+                        <div class="force-description">{{ force.description }}</div>
+                    </div>
+                    <div class="force-values">
+                        <div class="force-magnitude">{{ "%.1f"|format(force.magnitude) }} Н</div>
+                        <div class="force-angle">{{ force.angle }}°</div>
+                    </div>
+                    <div class="force-arrow" style="--arrow-angle: {{ force.angle }}deg;">➤</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+
+            <div class="summary">
+                <div class="summary-title">📊 Сводка</div>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="summary-value">{{ force_count }}</div>
+                        <div class="summary-label">Всего сил</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value">{{ "%.1f"|format(total_magnitude) }} Н</div>
+                        <div class="summary-label">Суммарная величина</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value">{{ "%.1f"|format(resultant_magnitude) }} Н</div>
+                        <div class="summary-label">Результирующая</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value">{{ "%.1f"|format(resultant_angle) }}°</div>
+                        <div class="summary-label">Угол результ.</div>
+                    </div>
+                </div>
+
+                <div class="equilibrium-status {{ 'equilibrium-yes' if is_equilibrium else 'equilibrium-no' }}">
+                    {{ '✅ Равновесие' if is_equilibrium else '⚠️ Неравновесие' }}
+                </div>
+            </div>
+            {% else %}
+            <div class="no-forces">
+                <div class="no-forces-icon">🚫</div>
+                <p>На данный объект не действуют силы</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+
+    </script>
+</body>
+
+</html>

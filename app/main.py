@@ -363,3 +363,53 @@ async def get_object_forces(request: Request, object_id: str):
         "force_count": len(object_forces),
         "total_force_magnitude": sum(f["magnitude"] for f in object_forces)
     }
+@app.get("/forces/popup/{object_id}", response_class=HTMLResponse)
+async def get_forces_popup(request: Request, object_id: str):
+    """Получить HTML попап с анализом сил для объекта"""
+    scene = load_scene()
+    analysis = analyze_all_forces(scene)
+    
+    # Получаем объект
+    obj = next((o for o in scene["objects"] if o["id"] == object_id), None)
+    if not obj:
+        return HTMLResponse("<div>Объект не найден</div>")
+    
+    # Получаем силы для объекта
+    object_forces = analysis["objects_forces"].get(object_id, [])
+    
+    # Группируем силы по типам
+    forces_by_type = {}
+    for force in object_forces:
+        force_type = force["type"]
+        if force_type not in forces_by_type:
+            forces_by_type[force_type] = []
+        forces_by_type[force_type].append(force)
+    
+    # Рассчитываем результирующую силу
+    total_x = sum(f["magnitude"] * math.cos(math.radians(f["angle"])) for f in object_forces)
+    total_y = sum(f["magnitude"] * math.sin(math.radians(f["angle"])) for f in object_forces)
+    resultant_magnitude = math.sqrt(total_x**2 + total_y**2)
+    resultant_angle = math.degrees(math.atan2(total_y, total_x)) if resultant_magnitude > 0.01 else 0
+    
+    # Определяем тип объекта для отображения
+    object_type_name = {
+        "block": "Блок",
+        "plane": "Плоскость",
+        "string": "Нить"
+    }.get(obj["type"], obj["type"])
+    
+    return templates.TemplateResponse(
+        "forces_popup.html",
+        {
+            "request": request,
+            "object": obj,
+            "object_type_name": object_type_name,
+            "forces": object_forces,
+            "forces_by_type": forces_by_type,
+            "force_count": len(object_forces),
+            "total_magnitude": sum(f["magnitude"] for f in object_forces),
+            "resultant_magnitude": resultant_magnitude,
+            "resultant_angle": resultant_angle,
+            "is_equilibrium": resultant_magnitude < 0.1
+        }
+    )

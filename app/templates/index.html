@@ -5,9 +5,7 @@
     <meta charset="UTF-8">
     <title>Механика: Чертеж</title>
     <link rel="stylesheet" href="/static/style.css">
-    <style>
 
-    </style>
 </head>
 
 <body>
@@ -17,6 +15,13 @@
             {{ svg_elements|safe }}
 
         </svg>
+    </div>
+    <div id="popup" class="popup hidden">
+        <div class="popup-content">
+            <button id="closePopupBtn" type="button">Закрыть</button>
+            <!-- <span class="close-btn" id="closePopupBtn">&times;</span> -->
+            <div id="popup-body">Здесь будет информация</div>
+        </div>
     </div>
     <div id="sidebar">
         <div class="object-option">
@@ -55,6 +60,11 @@
                 </select>
 
             </div>
+        </div>
+        <div class="object-option">
+            <label><input type="radio" name="mode" value="info" {% if mode=='info' %}checked{% endif %}>
+                Посмотреть информацию о силах</label>
+
         </div>
         <button id="clear-btn" type="button">Очистить рисунок</button>
     </div>

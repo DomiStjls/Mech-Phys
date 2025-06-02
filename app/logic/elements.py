@@ -128,7 +128,7 @@ def create_plane_svg(obj):
     length = int(obj.get("length", 500))
     x2 = x1 + length * math.cos(math.radians(angle))
     y2 = y1 - length * math.sin(math.radians(angle))
-    svg = f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="black" stroke-width="6" data-id="{obj["id"]}" />'
+    svg = f'<line class="clickable-object" x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="black" stroke-width="6" data-id="{obj["id"]}" />'
     return svg
 
 
@@ -153,7 +153,7 @@ def create_block_svg(obj):
     height = int(obj.get("height", 40))
     x_rotate = obj["x_rotate"]
     y_rotate = obj["y_rotate"]
-    svg = f'<rect x="{x_rotate}" y="{y_rotate}" width="{width}" height="{height}" fill="green" fill-opacity="0.4" stroke="black" transform="rotate({obj["angle"]}, {x_rotate}, {y_rotate})" />'
+    svg = f'<rect class="clickable-object" x="{x_rotate}" y="{y_rotate}" width="{width}" height="{height}" fill="green" fill-opacity="0.4" stroke="black" transform="rotate({obj["angle"]}, {x_rotate}, {y_rotate})" />'
     return svg
 
 
@@ -172,7 +172,7 @@ def create_string_svg(obj):
     x2 = obj.get("x2", x + 100)
     y2 = obj.get("y2", y)
     if obj["attachment"] == "two-way":
-        svg = f'<line x1="{x}" y1="{y}" x2="{x2}" y2="{y2}" stroke="black" stroke-width="2" />'
+        svg = f'<line class="clickable-object" x1="{x}" y1="{y}" x2="{x2}" y2="{y2}" stroke="black" stroke-width="2" />'
     else:
         angle = math.atan2(y2 - y, x2 - x)
         xp1 = x2 - 20 * math.sin(angle)
@@ -180,7 +180,7 @@ def create_string_svg(obj):
         xp2 = x2 + 20 * math.sin(angle)
         yp2 = y2 - 20 * math.cos(angle)
         svg = (
-            f'<line x1="{x}" y1="{y}" x2="{x2}" y2="{y2}" stroke="black" stroke-width="2" />\n'
+            f'<line class="clickable-object" x1="{x}" y1="{y}" x2="{x2}" y2="{y2}" stroke="black" stroke-width="2" />\n'
             + f'<line x1="{xp1}" y1="{yp1}" x2="{xp2}" y2="{yp2}" stroke="black" stroke-width="5" />'
         )
     return svg
